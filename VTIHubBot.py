@@ -1,13 +1,19 @@
 import asyncio
 import logging
 import argparse
-import json # NEW: For parsing JSON data from the Web App
+import json
+import os # NEW: For deleting the temporary PDF file
+from datetime import datetime # NEW: For getting current time
 
-from aiogram import Bot, Dispatcher, F # NEW: F is used for filtering message types
+from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, FSInputFile # NEW: FSInputFile for sending documents
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# NEW: Import our custom PDF generator module
+import ticket_generator 
 
 # Configure basic logging
 logging.basicConfig(
@@ -16,10 +22,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# URL of your web application
 WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub/ticket_app.html"
 
-# Initialize the Dispatcher
 dp = Dispatcher()
 
 # --- HANDLERS ---
@@ -41,56 +45,105 @@ async def cmd_start(message: Message):
     )
 
     await message.answer(
-        "🐶",
+        "Привет! Нажми на кнопку ниже, чтобы открыть форму приема техники 🐶",
         reply_markup=keyboard
     )
 
-# NEW HANDLER FOR STEP 3:
-# This filter catches any message that contains web_app_data
-# NEW HANDLER FOR STEP 3 (UPDATED WITH NONE CHECKS):
+
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: Message):
     """
     Catches and processes the JSON data sent from the Web App.
-    Safely handles potential None values for web_app_data and from_user.
+    Generates a PDF ticket and sends it back to the user.
     """
-    # Defensive check: Ensure both the web app data and the user object exist
     if not message.web_app_data or not message.from_user:
         logger.warning("Received a web app message, but web_app_data or from_user is None.")
         await message.answer("❌ Ошибка: не удалось получить данные формы или информацию о пользователе.")
         return
 
+    # Send a temporary "Processing" message
+    status_msg = await message.answer("<i>Обрабатываю данные и генерирую тикет... 🖨️</i>")
+
     try:
-        # 1. Extract the raw JSON string safely
+        # Extract and parse data
         raw_data = message.web_app_data.data
-        
-        # 2. Parse the JSON string
         parsed_data = json.loads(raw_data)
         
-        # 3. Extract fields with fallbacks
         phone = parsed_data.get('phone', 'N/A')
         description = parsed_data.get('description', 'Нет описания')
-        
-        # Safe extraction of operator name (fallback if first_name is empty string or None somehow)
         operator_name = message.from_user.first_name or "Неизвестный оператор"
         
-        logger.info(f"Received Web App Data: Operator={operator_name}, Phone={phone}, Desc={description}")
+        # Get current time formatted as YYYY-MM-DD HH:MM
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         
-        # 4. Send temporary acknowledgment
-        await message.answer(
-            f"✅ Данные успешно получены!\n\n"
-            f"<b>Принял(а):</b> {operator_name}\n"
-            f"<b>Телефон:</b> {phone}\n"
-            f"<b>Описание:</b> {description}\n\n"
-            f"<i>Генерирую тикет... 🖨️</i>"
+        # Create a unique filename for this specific ticket to avoid conflicts
+        unique_filename = f"ticket_{message.from_user.id}_{datetime.now().strftime('%H%M%S')}.pdf"
+        
+        logger.info(f"Generating PDF for {operator_name}...")
+        
+        # Call our generator module
+        pdf_path = ticket_generator.create_multipage_label(
+            filename=unique_filename,
+            operator_name=operator_name,
+            phone=phone,
+            time_str=current_time,
+            description=description
+            # NOTE: logo_path="logo.png" is used by default inside the function
         )
         
+       # NEW IMPORTS (add these to the top of main.py):
+    # from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+        if pdf_path and os.path.exists(pdf_path):
+            document = FSInputFile(pdf_path)
+            
+            # 1. Create the beautiful caption matching your old bot
+            caption_text = (
+                f"✅ <b>Заявка создана!</b>\n\n"
+                f"👤 Отправил(а): {operator_name}\n"
+                f"🕒 Время: {current_time}\n"
+                f"--- Детали заявки ---\n"
+                f"📞 Телефон: <code>{phone}</code>\n"
+                f"📝 Описание: {description}"
+            )
+
+            # 2. Create the Inline "Print" button
+            # We use a simple callback_data string. Later we will catch it.
+            print_btn = InlineKeyboardButton(
+                text="🖨️ Print", 
+                callback_data="print_ticket"
+            )
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
+            
+            # 3. Send the document with the caption and the button
+            await message.answer_document(
+                document=document,
+                caption=caption_text,
+                reply_markup=keyboard
+            )
+            
+            # Clean up temporary file
+            try:
+                os.remove(pdf_path)
+                logger.info(f"Deleted temporary file {pdf_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete temporary file {pdf_path}: {e}")
+                
+        else:
+            await message.answer("❌ Произошла ошибка при создании PDF-документа.")
+
     except json.JSONDecodeError:
         logger.error("Failed to decode JSON from Web App")
-        await message.answer("❌ Ошибка при чтении данных с формы. Пожалуйста, попробуй еще раз.")
+        await message.answer("❌ Ошибка при чтении данных с формы.")
     except Exception as e:
         logger.error(f"Unexpected error in web_app_data_handler: {e}")
         await message.answer("❌ Произошла непредвиденная ошибка при обработке данных.")
+    finally:
+        # Delete the temporary "Processing" message to keep the chat clean
+        try:
+            await status_msg.delete()
+        except Exception:
+            pass # Ignore errors if the message couldn't be deleted
 
 # --- MAIN RUNNER ---
 
