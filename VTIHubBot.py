@@ -64,68 +64,63 @@ async def web_app_data_handler(message: Message):
         await message.answer("❌ Ошибка: не удалось получить данные формы или информацию о пользователе.")
         return
 
-    # Send a temporary "Processing" message
     status_msg = await message.answer("<i>Обрабатываю данные и генерирую тикет... 🖨️</i>")
 
     try:
-        # Extract and parse data
         raw_data = message.web_app_data.data
         parsed_data = json.loads(raw_data)
         
-        phone = parsed_data.get('phone', 'N/A')
+        # --- NEW: Format the phone number ---
+        raw_phone = parsed_data.get('phone', 'N/A')
+        formatted_phone = format_phone_number(raw_phone)
+        
         description = parsed_data.get('description', 'Нет описания')
-        operator_name = message.from_user.first_name or "Неизвестный оператор"
         
-        # Get current time formatted as YYYY-MM-DD HH:MM
+        # --- NEW: Use @username if available, otherwise fallback to first_name ---
+        user = message.from_user
+        if user.username:
+            operator_name = f"@{user.username}"
+        else:
+            operator_name = user.first_name or "Неизвестный оператор"
+            
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-        
-        # Create a unique filename for this specific ticket to avoid conflicts
-        unique_filename = f"ticket_{message.from_user.id}_{datetime.now().strftime('%H%M%S')}.pdf"
+        unique_filename = f"ticket_{user.id}_{datetime.now().strftime('%H%M%S')}.pdf"
         
         logger.info(f"Generating PDF for {operator_name}...")
         
-        # Call our generator module
+        # We pass the formatted_phone to the PDF generator so it looks nice on paper too!
         pdf_path = ticket_generator.create_multipage_label(
             filename=unique_filename,
             operator_name=operator_name,
-            phone=phone,
+            phone=formatted_phone, 
             time_str=current_time,
             description=description
-            # NOTE: logo_path="logo.png" is used by default inside the function
         )
         
-       # NEW IMPORTS (add these to the top of main.py):
-    # from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
         if pdf_path and os.path.exists(pdf_path):
             document = FSInputFile(pdf_path)
             
-            # 1. Create the beautiful caption matching your old bot
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
                 f"🕒 Время: {current_time}\n"
                 f"--- Детали заявки ---\n"
-                f"📞 Телефон: <code>{phone}</code>\n"
+                f"📞 Телефон: <code>{formatted_phone}</code>\n"
                 f"📝 Описание: {description}"
             )
 
-            # 2. Create the Inline "Print" button
-            # We use a simple callback_data string. Later we will catch it.
             print_btn = InlineKeyboardButton(
                 text="🖨️ Print", 
                 callback_data="print_ticket"
             )
             keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
             
-            # 3. Send the document with the caption and the button
             await message.answer_document(
                 document=document,
                 caption=caption_text,
                 reply_markup=keyboard
             )
             
-            # Clean up temporary file
             try:
                 os.remove(pdf_path)
                 logger.info(f"Deleted temporary file {pdf_path}")
@@ -142,11 +137,10 @@ async def web_app_data_handler(message: Message):
         logger.error(f"Unexpected error in web_app_data_handler: {e}")
         await message.answer("❌ Произошла непредвиденная ошибка при обработке данных.")
     finally:
-        # Delete the temporary "Processing" message to keep the chat clean
         try:
             await status_msg.delete()
         except Exception:
-            pass # Ignore errors if the message couldn't be deleted
+            pass
 
 
 
@@ -205,6 +199,31 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
                 logger.info(f"Cleaned up temporary print file: {temp_pdf_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete {temp_pdf_path}: {e}")
+
+
+import re
+
+def format_phone_number(phone_str: str) -> str:
+    """
+    Formats a raw phone number string into a readable format.
+    e.g., "+71234567890" -> "+7 (123) 456-78-90"
+    e.g., "81234567890" -> "8 (123) 456-78-90"
+    """
+    if not phone_str or phone_str == 'N/A':
+        return 'N/A'
+
+    # Remove all non-numeric characters except '+'
+    cleaned_phone = re.sub(r'[^\d+]', '', phone_str)
+
+    if cleaned_phone.startswith('+7') and len(cleaned_phone) == 12:
+        return f"{cleaned_phone[:2]} ({cleaned_phone[2:5]}) {cleaned_phone[5:8]}-{cleaned_phone[8:10]}-{cleaned_phone[10:12]}"
+    elif cleaned_phone.startswith('8') and len(cleaned_phone) == 11:
+        return f"{cleaned_phone[0]} ({cleaned_phone[1:4]}) {cleaned_phone[4:7]}-{cleaned_phone[7:9]}-{cleaned_phone[9:11]}"
+    else:
+        # Return as is if it doesn't match standard RU formats
+        return phone_str
+
+    
 
 # --- UPDATE MAIN RUNNER ---
 async def main():
