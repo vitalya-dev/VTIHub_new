@@ -29,8 +29,6 @@ async def main():
 
     # Start the polling process (bot starts listening to Telegram servers)
     try:
-        # We drop pending updates so the bot doesn't reply to old clicks/messages upon restart
-        await bot.delete_webhook(drop_pending_updates=True)
         await dp.start_polling(bot)
     except Exception as e:
         logger.error(f"An error occurred during polling: {e}")
