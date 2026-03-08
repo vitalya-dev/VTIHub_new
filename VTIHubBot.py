@@ -48,7 +48,7 @@ async def cmd_start(message: Message):
     )
 
     await message.answer(
-        "Привет! Нажми на кнопку ниже, чтобы открыть форму приема техники 🐶",
+        "🐶",
         reply_markup=keyboard
     )
 
@@ -176,7 +176,7 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
 
     # --- Отправляем временное сообщение с эмодзи ---
     temp_msg = await callback.message.reply("🖨️")
-
+    
     temp_pdf_path = f"temp_print_{document.file_id}.pdf"
 
     try:
@@ -203,13 +203,11 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
                 logger.info(f"Cleaned up temporary print file: {temp_pdf_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete {temp_pdf_path}: {e}")
-                
         # 2. Удаляем временное сообщение с эмодзи
         try:
             await temp_msg.delete()
         except Exception as e:
             logger.warning(f"Failed to delete temporary emoji message: {e}")
-
 
 import re
 
