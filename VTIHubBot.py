@@ -230,3 +230,9 @@ async def main():
         logger.error(f"An error occurred during polling: {e}")
     finally:
         logger.info("Bot has been stopped.")
+
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user (KeyboardInterrupt).")
