@@ -12,6 +12,9 @@ from aiogram.filters import CommandStart
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, FSInputFile # NEW: FSInputFile for sending documents
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+import subprocess
+from aiogram.types import CallbackQuery
+
 # NEW: Import our custom PDF generator module
 import ticket_generator 
 
@@ -145,16 +148,80 @@ async def web_app_data_handler(message: Message):
         except Exception:
             pass # Ignore errors if the message couldn't be deleted
 
-# --- MAIN RUNNER ---
 
+
+# NEW HANDLER FOR STEP 6 (BULLETPROOF VERSION):
+@dp.callback_query(F.data == "print_ticket")
+async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
+    """
+    Handles the "Print" button click.
+    Safely checks if the message is accessible before downloading the PDF.
+    """
+    await callback.answer("Подготовка к печати... 🖨️")
+
+    # --- DEFENSIVE CHECK: Is the message valid and accessible? ---
+    if not callback.message or not isinstance(callback.message, Message):
+        logger.warning(f"Print callback from user {callback.from_user.id}: Message is missing or inaccessible.")
+        # Поскольку исходное сообщение недоступно, мы не можем сделать .reply()
+        # Отправляем сообщение напрямую в личку пользователю
+        try:
+            await bot.send_message(
+                chat_id=callback.from_user.id, 
+                text="❌ Исходное сообщение недоступно для печати (возможно, оно было удалено)."
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify user about inaccessible message: {e}")
+        return
+
+    # Now we are 100% sure it's a regular Message object
+    document = callback.message.document
+    if not document:
+        await callback.message.reply("❌ Документ не найден в сообщении.")
+        return
+
+    # Define a temporary path to save the downloaded PDF
+    temp_pdf_path = f"temp_print_{document.file_id}.pdf"
+
+    try:
+        # Download the file
+        await bot.download(document, destination=temp_pdf_path)
+        logger.info(f"Successfully downloaded PDF for printing: {temp_pdf_path}")
+
+        # --- PLACEHOLDER FOR FUTURE PRINT LOGIC ---
+        logger.info(">>> TODO: Insert actual print logic here using the new program. <<<")
+        await asyncio.sleep(1) 
+        # ---------------------------------------------
+
+        await callback.message.reply("✅ Документ успешно скачан! (Печать пока заглушена)")
+
+    except Exception as e:
+        logger.error(f"Failed to process document for printing: {e}")
+        await callback.message.reply("❌ Произошла ошибка при скачивании документа.")
+    finally:
+        # Clean up the downloaded file
+        if os.path.exists(temp_pdf_path):
+            try:
+                os.remove(temp_pdf_path)
+                logger.info(f"Cleaned up temporary print file: {temp_pdf_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete {temp_pdf_path}: {e}")
+
+# --- UPDATE MAIN RUNNER ---
 async def main():
     parser = argparse.ArgumentParser(description="VTI Hub Ticket Bot on Aiogram 3")
     parser.add_argument('--token', required=True, help='Your Telegram Bot Token')
+    # NEW ARGUMENT FOR PRINTER:
+    parser.add_argument('--print', dest='printer_name', default=None, help='Printer name for IrfanView')
     args = parser.parse_args()
 
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
+    # Inject the printer_name into the dispatcher so our callback handler can use it
+    dp["printer_name"] = args.printer_name
+    
     logger.info("Starting bot...")
+    if args.printer_name:
+        logger.info(f"Printer configured: {args.printer_name}")
 
     try:
         await bot.delete_webhook(drop_pending_updates=True)
@@ -163,9 +230,3 @@ async def main():
         logger.error(f"An error occurred during polling: {e}")
     finally:
         logger.info("Bot has been stopped.")
-
-if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user (KeyboardInterrupt).")
