@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ru">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+		<title>Приложение Заявок - Новая Заявка</title>
+		<style>
+			/* :root definition is no longer strictly needed for these colors,
+				 but kept here for clarity on the original design intent or potential future use.
+				 The actual styling now uses Telegram variables with fallbacks. */
+			:root {
+				--original-primary-color: #2481d7;
+				--original-secondary-color: #e5e5ea;
+				--original-text-color: #1a1a1a;
+				--original-label-color: #666;
+				--original-background-color: #f0f2f5;
+				--original-white: #ffffff;
+				--original-border-color: #ddd;
+				--original-destructive-color: red;
+				/* Alpha version of button color for box-shadow, adjust as needed or use a fixed rgba */
+				--tg-theme-button-color-alpha: rgba(36, 129, 215, 0.2); 
+			}
+
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+				background-color: var(--tg-theme-bg-color, var(--original-background-color));
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				margin: 0;
+				padding: 20px;
+				display: flex;
+				justify-content: center;
+				padding-top: calc(env(safe-area-inset-top, 0px) + 20px);
+				padding-left: calc(env(safe-area-inset-left, 0px) + 20px);
+				padding-right: calc(env(safe-area-inset-right, 0px) + 20px);
+				padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+				box-sizing: border-box;
+				min-height: 100vh;
+			}
+
+			.ticket-container {
+				background: var(--tg-theme-secondary-bg-color, var(--original-white));
+				border-radius: 12px;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+				padding: 20px;
+				width: 100%;
+				max-width: 400px;
+				box-sizing: border-box;
+			}
+
+			.header {
+				font-size: 20px;
+				font-weight: 500;
+				margin-bottom: 20px;
+				color: var(--tg-theme-text-color, var(--original-text-color));
+			}
+
+			.input-group {
+				margin-bottom: 18px;
+			}
+
+			label {
+				display: block;
+				margin-bottom: 8px;
+				color: var(--tg-theme-hint-color, var(--original-label-color));
+				font-size: 14px;
+				font-weight: 500;
+			}
+
+			.hint {
+				color: var(--tg-theme-hint-color, #666);
+				font-size: 12px;
+				margin-top: -4px;
+				margin-bottom: 8px;
+				line-height: 1.4;
+			}
+
+			input[type="tel"],
+			input[type="text"],
+			textarea {
+				width: 100%;
+				padding: 12px;
+				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				background-color: var(--tg-theme-secondary-bg-color, var(--original-white));
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				border-radius: 8px;
+				font-size: 16px;
+				box-sizing: border-box;
+				font-family: inherit;
+				transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+			}
+
+			input[type="tel"]:focus,
+			input[type="text"]:focus,
+			textarea:focus {
+				border-color: var(--tg-theme-button-color, var(--original-primary-color));
+				box-shadow: 0 0 0 2px var(--tg-theme-button-color-alpha, rgba(36, 129, 215, 0.2)); 
+			}
+
+			input[type="tel"]::placeholder,
+			input[type="text"]::placeholder,
+			textarea::placeholder {
+				color: var(--tg-theme-hint-color, #999);
+				opacity: 1;
+			}
+
+			textarea {
+				min-height: 80px; /* Retained from original CSS, inline style removed from HTML */
+				resize: vertical;
+			}
+
+			.accessory-buttons {
+				/* Styles like display, gap, flex-wrap are already here. margin-top from CSS is 10px */
+				margin-top: 10px; 
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+			}
+
+			.accessory-buttons button.accessory-btn { /* Ensure this targets the button type if needed */
+				padding: 6px 10px;
+				font-size: 13px;
+				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				color: var(--tg-theme-link-color, var(--original-primary-color));
+				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border-radius: 6px;
+				cursor: pointer;
+				transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+				flex: none;
+			}
+
+			.accessory-buttons button.accessory-btn:hover {
+				border-color: var(--tg-theme-link-color, var(--original-primary-color));
+				background-color: var(--tg-theme-bg-color, var(--original-background-color));
+			}
+
+			.accessory-buttons button.accessory-btn:active {
+				opacity: 0.7;
+				background-color: var(--tg-theme-hint-color, #ccc); 
+			}
+
+			.form-actions {
+				display: flex;
+				gap: 10px;
+				margin-top: 25px;
+			}
+
+			button { /* This targets .cancel-btn and .send-btn in .form-actions and accessory-btn*/
+				flex: 1; /* Be mindful if accessory buttons should also flex like this */
+				padding: 12px;
+				border: none;
+				border-radius: 8px;
+				font-weight: 500;
+				font-size: 16px;
+				cursor: pointer;
+				transition: opacity 0.2s;
+			}
+			/* If accessory buttons shouldn't flex like main buttons, ensure their selector is more specific or they don't fall under this general button rule if it's too broad. */
+			/* The current .accessory-buttons button.accessory-btn is more specific for most properties except flex. */
+
+
+			.form-actions button:active { /* Specific to buttons in .form-actions for :active */
+				opacity: 0.7;
+			}
+
+			.cancel-btn {
+				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				border: 1px solid var(--tg-theme-hint-color, transparent);
+			}
+			.cancel-btn:hover {
+					opacity: 0.8;
+			}
+
+			.send-btn {
+				background-color: var(--tg-theme-button-color, var(--original-primary-color));
+				color: var(--tg-theme-button-text-color, var(--original-white));
+			}
+			.send-btn:hover {
+					opacity: 0.85;
+			}
+
+			.error-message {
+				color: var(--tg-theme-destructive-text-color, var(--original-destructive-color));
+				font-size: 14px;
+				margin-top: 15px;
+				text-align: center;
+			}
+
+		</style>
+	</head>
+	<body>
+		<div class="ticket-container">
+			<div class="header">➕ Новая Заявка</div>
+
+			<div class="input-group">
+				<label for="phone">📞 Телефон Клиента</label>
+				<input
+						type="tel"
+						id="phone"
+						inputmode="tel"
+						placeholder="Введите номер телефона"
+						enterkeyhint="next"
+						aria-label="Телефон клиента"
+						>
+			</div>
+
+				<div class="input-group">
+					<label for="deviceModel">⚙️ Модель Техники</label>
+					<input
+							type="text"
+							id="deviceModel"
+							placeholder="Например: Lenovo IdeaPad 5"
+							inputmode="text"
+							enterkeyhint="next"
+							autocapitalize="sentences"
+							aria-label="Модель техники"
+							>
+				</div>
+
+				<div class="input-group">
+					<label for="issueDescription">🛠️ Характер Неисправности</label>
+					<textarea
+							id="issueDescription"
+							placeholder="Например: Не заряжается, разбит экран"
+							inputmode="text"
+							enterkeyhint="next"
+							autocapitalize="sentences"
+							spellcheck="true"
+							data-gramm="false"
+							aria-label="Характер неисправности"
+							></textarea> </div>
+
+				<div class="input-group">
+					<label for="accessories">🔌 Комплектация</label>
+					<input
+						type="text"
+						id="accessories"
+						placeholder="Без комплектации"
+						inputmode="text"
+						enterkeyhint="done"
+						autocapitalize="sentences"
+						aria-label="Комплектация"
+					>
+					<div class="accessory-buttons"> 
+						<button type="button" class="accessory-btn" data-accessory="БП">+БП</button>
+						<button type="button" class="accessory-btn" data-accessory="Сумка">+Сумка</button>
+						<button type="button" class="accessory-btn" data-accessory="Кабель">+Кабель</button>
+						<button type="button" class="accessory-btn" data-accessory="Мышь">+Мышь</button>
+						</div>
+				</div>
+
+				<div class="form-actions">
+					<button type="button" class="cancel-btn" aria-label="Отмена">Отмена</button>
+					<button type="button" class="send-btn" aria-label="Отправить">Отправить</button>
+				</div>
+
+				<div id="error-message" class="error-message"></div>
+		</div>
+
+		<script src="https://telegram.org/js/telegram-web-app.js"></script>
+		<script>
+			// Initialize Telegram Web App interactions
+			if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+				Telegram.WebApp.ready();
+				Telegram.WebApp.onEvent('themeChanged', function() {
+					console.log('Theme changed:', Telegram.WebApp.themeParams);
+				});
+			}
+
+			function validatePhone(phone) {
+				const trimmedPhone = phone.trim();
+				if (trimmedPhone === '') {
+						return { isValid: false, message: 'Пожалуйста, введите номер телефона.' };
+				}
+				const specificFormatRegex = /^(8\d{10}|\+7\d{10})$/;
+				if (specificFormatRegex.test(trimmedPhone)) {
+						return { isValid: true, message: '' };
+				} else {
+						return { isValid: false, message: 'Неверный формат. Номер должен быть вида 8XXXXXXXXXX или +7XXXXXXXXXX (без пробелов и дефисов).' };
+				}
+			}
+
+			// Refactored addAccessory to be an event handler
+			function addAccessory(event) {
+				const accessoryText = event.target.dataset.accessory; // Get text from data-attribute
+				if (!accessoryText) return; // Safety check
+
+				const accessoriesInput = document.getElementById('accessories');
+				const currentValue = accessoriesInput.value.trim();
+				
+				if (currentValue === '') {
+					accessoriesInput.value = accessoryText;
+				} else {
+					// Check if the accessory (case-insensitive) is already included
+					const accessoriesArray = currentValue.split(',').map(item => item.trim().toLowerCase());
+					if (!accessoriesArray.includes(accessoryText.toLowerCase())) {
+						 accessoriesInput.value += ', ' + accessoryText;
+					}
+				}
+				accessoriesInput.focus();
+			}
+
+			function validateDescription(description) { // This function was present but not used in sendData validation directly
+				return description.trim() !== '';
+			}
+
+			function sendData() {
+				const phoneInput = document.getElementById('phone');
+				const deviceModelInput = document.getElementById('deviceModel');
+				const issueDescriptionInput = document.getElementById('issueDescription');
+				const accessoriesInput = document.getElementById('accessories'); // Get the accessories input element
+				const errorMessage = document.getElementById('error-message');
+
+				const phone = phoneInput.value;
+				const deviceModel = deviceModelInput.value.trim();
+				const issueDescription = issueDescriptionInput.value.trim();
+				const accessories = accessoriesInput.value.trim(); // Get the trimmed value
+
+				errorMessage.textContent = '';
+
+				const phoneValidationResult = validatePhone(phone);
+				if (!phoneValidationResult.isValid) {
+					errorMessage.textContent = phoneValidationResult.message;
+					phoneInput.focus();
+					return;
+				}
+
+				if (deviceModel === '') {
+					errorMessage.textContent = 'Пожалуйста, введите модель техники.';
+					deviceModelInput.focus();
+					return;
+				}
+
+				if (!validateDescription(issueDescription)) {
+					errorMessage.textContent = 'Пожалуйста, опишите характер неисправности.';
+					issueDescriptionInput.focus();
+					return;
+				}
+
+				if (typeof Telegram === 'undefined' || !Telegram.WebApp) {
+					errorMessage.textContent = 'Веб-приложение Telegram недоступно.';
+					return;
+				}
+
+				let combinedDescription = `${deviceModel}. ${issueDescription}`;
+
+				// Updated logic for accessories:
+				if (accessories) { // If the user entered something or used buttons
+					combinedDescription += `. ${accessories}`;
+				} else { // If the accessories field is empty (placeholder was showing)
+					combinedDescription += `. Без комплектации`;
+				}
+
+				const data = {
+					phone: phone,
+					description: combinedDescription,
+					app_origin: 'ticket_app'
+				};
+
+				Telegram.WebApp.sendData(JSON.stringify(data));
+				Telegram.WebApp.close();
+			}
+
+			function goBack() {
+				if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+					Telegram.WebApp.close();
+				} else {
+					try {
+						window.history.back();
+					} catch (e) {
+						console.error("Cannot go back:", e);
+						// Fallback: maybe show a message or disable the button
+						const errorMessage = document.getElementById('error-message');
+						if(errorMessage) errorMessage.textContent = "Не удается вернуться назад.";
+					}
+				}
+			}
+
+			// --- Event Listener Setup ---
+			// It's good practice to ensure the DOM is fully loaded before attaching listeners,
+			// but since this script is at the end of the body, elements should be available.
+			document.addEventListener('DOMContentLoaded', function() {
+				const cancelBtn = document.querySelector('.cancel-btn');
+				if (cancelBtn) {
+					cancelBtn.addEventListener('click', goBack);
+				}
+
+				const sendBtn = document.querySelector('.send-btn');
+				if (sendBtn) {
+					sendBtn.addEventListener('click', sendData);
+				}
+
+				const accessoryBtns = document.querySelectorAll('.accessory-btn');
+				accessoryBtns.forEach(button => {
+					button.addEventListener('click', addAccessory); // Pass the function reference
+				});
+			});
+
+		</script>
+	</body>
+</html>
