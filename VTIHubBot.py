@@ -144,61 +144,71 @@ async def web_app_data_handler(message: Message):
 
 
 
-# NEW HANDLER FOR STEP 6 (BULLETPROOF VERSION):
+# Убедись, что импортировал Message
+from aiogram.types import CallbackQuery, Message
+import os
+import asyncio
+
 @dp.callback_query(F.data == "print_ticket")
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
     """
     Handles the "Print" button click.
-    Safely checks if the message is accessible before downloading the PDF.
+    Shows a temporary printer emoji, downloads the PDF, and then cleans up.
     """
+    # Гасим "часики" на кнопке без всплывающего текста
     await callback.answer("Подготовка к печати... 🖨️")
 
-    # --- DEFENSIVE CHECK: Is the message valid and accessible? ---
     if not callback.message or not isinstance(callback.message, Message):
         logger.warning(f"Print callback from user {callback.from_user.id}: Message is missing or inaccessible.")
-        # Поскольку исходное сообщение недоступно, мы не можем сделать .reply()
-        # Отправляем сообщение напрямую в личку пользователю
         try:
             await bot.send_message(
                 chat_id=callback.from_user.id, 
-                text="❌ Исходное сообщение недоступно для печати (возможно, оно было удалено)."
+                text="❌ Исходное сообщение недоступно для печати."
             )
         except Exception as e:
-            logger.error(f"Failed to notify user about inaccessible message: {e}")
+            logger.error(f"Failed to notify user: {e}")
         return
 
-    # Now we are 100% sure it's a regular Message object
     document = callback.message.document
     if not document:
-        await callback.message.reply("❌ Документ не найден в сообщении.")
+        await callback.message.answer("❌ Документ не найден в сообщении.")
         return
 
-    # Define a temporary path to save the downloaded PDF
+    # --- Отправляем временное сообщение с эмодзи ---
+    temp_msg = await callback.message.reply("🖨️")
+
     temp_pdf_path = f"temp_print_{document.file_id}.pdf"
 
     try:
-        # Download the file
+        # Скачиваем файл
         await bot.download(document, destination=temp_pdf_path)
         logger.info(f"Successfully downloaded PDF for printing: {temp_pdf_path}")
 
-        # --- PLACEHOLDER FOR FUTURE PRINT LOGIC ---
-        logger.info(">>> TODO: Insert actual print logic here using the new program. <<<")
-        await asyncio.sleep(1) 
-        # ---------------------------------------------
+        # --- ЗАГЛУШКА ПЕЧАТИ ---
+        logger.info(">>> TODO: Insert actual print logic here. <<<")
+        await asyncio.sleep(1.5) # Имитируем задержку печати, чтобы увидеть эмодзи
+        # ------------------------
 
-        await callback.message.reply("✅ Документ успешно скачан! (Печать пока заглушена)")
+        # Мы убрали сообщение об успешном скачивании, чтобы не засорять чат
 
     except Exception as e:
         logger.error(f"Failed to process document for printing: {e}")
-        await callback.message.reply("❌ Произошла ошибка при скачивании документа.")
+        # Ошибку все-таки лучше показать, если что-то пошло не так
+        await callback.message.reply("❌ Произошла ошибка при подготовке к печати.")
     finally:
-        # Clean up the downloaded file
+        # 1. Удаляем скачанный PDF-файл
         if os.path.exists(temp_pdf_path):
             try:
                 os.remove(temp_pdf_path)
                 logger.info(f"Cleaned up temporary print file: {temp_pdf_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete {temp_pdf_path}: {e}")
+                
+        # 2. Удаляем временное сообщение с эмодзи
+        try:
+            await temp_msg.delete()
+        except Exception as e:
+            logger.warning(f"Failed to delete temporary emoji message: {e}")
 
 
 import re
@@ -223,7 +233,7 @@ def format_phone_number(phone_str: str) -> str:
         # Return as is if it doesn't match standard RU formats
         return phone_str
 
-    
+
 
 # --- UPDATE MAIN RUNNER ---
 async def main():
