@@ -59,7 +59,7 @@ def create_multipage_label(
         logo_frame = Frame(
             0*mm, 29*mm, 12*mm, 11*mm, 
             leftPadding=2*mm, bottomPadding=1.5*mm, rightPadding=2*mm, topPadding=1.5*mm,
-            showBoundary=1 # Включено для дебага
+            showBoundary=0 # Включено для дебага
         )
 
         if os.path.exists(logo_path):
@@ -74,7 +74,7 @@ def create_multipage_label(
         header_frame = Frame(
             12*mm, 29*mm, width - 12*mm, 11*mm, 
             leftPadding=2*mm, bottomPadding=0, rightPadding=2*mm, topPadding=1*mm,
-            showBoundary=1 # Включено для дебага
+            showBoundary=0 # Включено для дебага
         )
         
         # Добавляем текст во фрейм
@@ -94,7 +94,7 @@ def create_multipage_label(
     frame = Frame(
         0, 0, width, 29*mm, 
         leftPadding=2*mm, bottomPadding=1*mm, rightPadding=2*mm, topPadding=1*mm,
-        showBoundary=1 # Включено для дебага
+        showBoundary=0 # Включено для дебага
     )
     
     template = PageTemplate(id='LabelTemplate', frames=[frame], onPage=draw_header)
@@ -102,7 +102,7 @@ def create_multipage_label(
 
     # --- 3. СТИЛИ И ТЕКСТ ОСНОВНОГО БЛОКА ---
     style_phone = ParagraphStyle(
-        'PhoneStyle', fontName=font_name, fontSize=14, alignment=TA_CENTER, spaceAfter=3*mm      
+        'PhoneStyle', fontName=font_name, fontSize=14, alignment=TA_CENTER, spaceAfter=2*mm      
     )
     style_info = ParagraphStyle(
         'InfoStyle', fontName=font_name, fontSize=9, leading=9            
