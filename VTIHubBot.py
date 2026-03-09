@@ -111,7 +111,6 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         )
         
         if pdf_path and os.path.exists(pdf_path):
-            # Base caption
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
@@ -121,37 +120,45 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 f"📝 Описание: {description}"
             )
 
-            # --- 5. SEND TO CHANNEL ---
+            print_btn = InlineKeyboardButton(
+                text="🖨️ Print", 
+                callback_data="print_ticket"
+            )
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
+
+            # Переменная для хранения ID загруженного файла
+            reusable_file_id = None 
             channel_link = ""
+
+            # --- 5. SEND TO CHANNEL (ЗАГРУЖАЕМ ФАЙЛ ОДИН РАЗ) ---
             if channel_id:
                 try:
-                    # We need a fresh FSInputFile for each send operation
                     channel_doc = FSInputFile(pdf_path)
                     sent_msg = await bot.send_document(
                         chat_id=channel_id,
                         document=channel_doc,
-                        caption=caption_text
+                        caption=caption_text,
+                        reply_markup=keyboard
                     )
                     logger.info(f"Successfully sent ticket to channel {channel_id}")
                     
-                    # Generate the link to the channel message if it's a supergroup/channel (-100...)
+                    # НОВОЕ: Сохраняем file_id загруженного документа!
+                    if sent_msg.document:
+                        reusable_file_id = sent_msg.document.file_id
+                    
                     if str(channel_id).startswith("-100"):
                         clean_channel_id = str(channel_id)[4:]
                         channel_link = f"\n\n🔗 <a href='https://t.me/c/{clean_channel_id}/{sent_msg.message_id}'>Посмотреть вашу заявку в канале</a>"
                 except Exception as e:
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
 
-            # --- 6. SEND TO USER ---
+            # --- 6. SEND TO USER (ИСПОЛЬЗУЕМ file_id) ---
             user_caption = caption_text + channel_link
-
-            print_btn = InlineKeyboardButton(
-                text="🖨️ Print", 
-                callback_data="print_ticket"
-            )
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
             
-            # Second fresh FSInputFile for the user
-            user_doc = FSInputFile(pdf_path)
+            # НОВОЕ: Если мы уже загрузили файл в канал и получили file_id, 
+            # используем его. Если нет (например, канал не настроен или была ошибка), 
+            # грузим с диска заново.
+            user_doc = reusable_file_id if reusable_file_id else FSInputFile(pdf_path)
             
             await message.answer_document(
                 document=user_doc,
