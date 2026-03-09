@@ -3,11 +3,11 @@ import logging
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Paragraph, Frame, BaseDocTemplate, PageTemplate, Flowable
+from reportlab.platypus import Paragraph, Frame, BaseDocTemplate, PageTemplate, Flowable, Image, Table, TableStyle
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
-# Initialize logger for this module
+# Инициализация логгера для этого модуля
 logger = logging.getLogger(__name__)
 
 def create_multipage_label(
@@ -19,75 +19,100 @@ def create_multipage_label(
     description="No description"
 ) -> str | None:
     """
-    Generates a PDF label and returns the file path.
-    Returns None if an error occurs.
+    Генерирует PDF этикетку и возвращает путь к файлу.
+    Возвращает None, если произошла ошибка.
     """
     width = 57 * mm
     height = 40 * mm
     
-    # --- FONT SETUP ---
+    # --- НАСТРОЙКА ШРИФТОВ ---
     font_name = 'Consolas'
     try:
-        # Register regular Consolas
         pdfmetrics.registerFont(TTFont(font_name, 'consola.ttf'))
-        # Register bold Consolas
         pdfmetrics.registerFont(TTFont('Consolas-Bold', 'consolab.ttf'))
-        
         pdfmetrics.registerFontFamily(font_name, normal=font_name, bold='Consolas-Bold')
     except Exception as e:
-        logger.error(f"ERROR: Font files 'consola.ttf' or 'consolab.ttf' not found! Details: {e}")
+        logger.error(f"ОШИБКА: Файлы шрифтов 'consola.ttf' или 'consolab.ttf' не найдены! Детали: {e}")
         return None
 
-    # --- 1. HEADER FUNCTION (called on EVERY page) ---
+    # --- 1. ФУНКЦИЯ ШАПКИ (вызывается на КАЖДОЙ странице) ---
     def draw_header(canvas, doc):
         canvas.saveState()
         
-        # Check if logo exists before drawing to prevent crashes
+        # Стили для шапки (оставляем крупный шрифт)
+        style_header_title = ParagraphStyle(
+            'HeaderTitle', fontName=font_name, fontSize=10, leading=11, alignment=TA_LEFT
+        )
+        style_header_text = ParagraphStyle(
+            'HeaderText', fontName=font_name, fontSize=6.5, leading=7.5, alignment=TA_LEFT
+        )
+
+        # Текстовая часть шапки (ОДИН ТЕЛЕФОН)
+        header_text_elements = [
+            Paragraph("<b>ООО «ВТИ»</b>", style_header_title),
+            Paragraph("ул Советская 26, г. Керчь", style_header_text),
+            Paragraph("8 (978) 762-89-67", style_header_text)
+        ]
+
+        # Логотип
         if os.path.exists(logo_path):
-            canvas.drawImage(logo_path, 2*mm, 31*mm, width=8*mm, height=8*mm, mask='auto')
+            logo = Image(logo_path, width=8*mm, height=8*mm)
         else:
-            logger.warning(f"Logo not found at {logo_path}, skipping logo drawing.")
+            logo = Paragraph("", style_header_text)
+            logger.warning(f"Логотип не найден по пути {logo_path}, пропускаем.")
 
-        canvas.setFont(font_name, 9)
-        canvas.drawString(12*mm, 35.5*mm, "ООО «ВТИ»")
+        # Таблица для выравнивания
+        header_table = Table(
+            [[logo, header_text_elements]], 
+            colWidths=[10*mm, width - 12*mm]
+        )
         
-        canvas.setFont(font_name, 4)
-        canvas.drawString(12*mm, 33.5*mm, "ул Советская 26, г. Керчь")
-        
-        canvas.setFont(font_name, 4)
-        canvas.drawString(12*mm, 31.5*mm, "8 (978) 762-89-67 | 8 (978) 010-49-49")
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+            ('TOPPADDING', (0,0), (-1,-1), 0),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
+        ]))
 
-        # Divider line
+        # --- Фрейм для шапки (УМЕНЬШЕН) ---
+        # Начинается с 29 мм, высота 11 мм
+        header_frame = Frame(
+            0, 29*mm, width, 11*mm, 
+            leftPadding=2*mm, bottomPadding=0, rightPadding=2*mm, topPadding=0,
+            showBoundary=0
+        )
+        
+        header_frame.addFromList([header_table], canvas)
+
+        # Разделительная линия ПОДНЯЛАСЬ (теперь на 29 мм)
         canvas.setLineWidth(0.5)
         canvas.line(0*mm, 29*mm, width, 29*mm)
         
         canvas.restoreState()
 
-    # --- 2. DOCUMENT AND TEMPLATE SETUP ---
+    # --- 2. НАСТРОЙКА ДОКУМЕНТА И ШАБЛОНА ---
     
-    # Create the base document
     doc = BaseDocTemplate(filename, pagesize=(width, height))
     
-    # The Frame (occupies space strictly under the line)
+    # Главный фрейм УВЕЛИЧИЛСЯ (занимает пространство от 0 до 29 мм)
     frame = Frame(
         0, 0, width, 29*mm, 
         leftPadding=2*mm, bottomPadding=1*mm, rightPadding=2*mm, topPadding=1*mm,
         showBoundary=0 
     )
     
-    # Create the template: link our Frame and the draw_header function
     template = PageTemplate(id='LabelTemplate', frames=[frame], onPage=draw_header)
     doc.addPageTemplates([template])
 
-    # --- 3. STYLES AND TEXT SETUP ---
+    # --- 3. СТИЛИ И ТЕКСТ ОСНОВНОГО БЛОКА ---
     style_phone = ParagraphStyle(
-        'PhoneStyle', fontName=font_name, fontSize=16, alignment=TA_CENTER, spaceAfter=5*mm      
+        'PhoneStyle', fontName=font_name, fontSize=14, alignment=TA_CENTER, spaceAfter=3*mm      
     )
     style_info = ParagraphStyle(
-        'InfoStyle', fontName=font_name, fontSize=6, leading=9            
+        'InfoStyle', fontName=font_name, fontSize=9, leading=9            
     )
 
-    # Build the story
     story: list[Flowable] = [
         Paragraph(f"<b>{phone}</b>", style_phone),
         Paragraph(f"<b>Принял(а):</b> {operator_name}", style_info),
@@ -95,12 +120,38 @@ def create_multipage_label(
         Paragraph(f"<b>Описание:</b> {description}", style_info)
     ]
     
-    # --- 4. RUN THE MAGIC ---
+    # --- 4. СБОРКА ДОКУМЕНТА ---
     try:
-        # The build command will automatically split the story across pages!
         doc.build(story)
-        logger.info(f"Success! Multipage label saved as {filename}")
+        logger.info(f"Успех! Многостраничная этикетка сохранена как {filename}")
         return filename
     except Exception as e:
-        logger.error(f"Error building PDF: {e}")
+        logger.error(f"Ошибка при создании PDF: {e}")
         return None
+
+# ==========================================
+# БЛОК ДЛЯ ОТЛАДКИ (DEBUG)
+# ==========================================
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    logger.info("Запуск тестовой генерации этикетки...")
+    
+    test_description = (
+        "Ноутбук не включается. При нажатии на кнопку питания мигает индикатор 3 раза. "
+        "Клиент просит сохранить все данные с диска D:, особенно папку с фотографиями. "
+        "Также нужно почистить систему охлаждения и заменить термопасту."
+    )
+    
+    result_file = create_multipage_label(
+        filename="test_label.pdf",
+        logo_path="logo.png", 
+        operator_name="Иван Иванов",
+        phone="+7 (999) 123-45-67",
+        time_str="14:30 15.05.2024",
+        description=test_description
+    )
+    
+    if result_file:
+        logger.info(f"Тест пройден! Файл успешно создан: {os.path.abspath(result_file)}")
+    else:
+        logger.error("Тест провален. Файл не был создан. Проверь наличие шрифтов!")
