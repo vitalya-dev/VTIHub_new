@@ -67,6 +67,11 @@ async def web_app_data_handler(message: Message):
     Catches and processes the JSON data sent from the Web App.
     Generates a PDF ticket and sends it back to the user.
     """
+    try:
+        await message.delete()
+    except Exception as e:
+        logger.warning(f"Не удалось удалить сообщение с web_app_data: {e}")
+        
     if not message.web_app_data or not message.from_user:
         logger.warning("Received a web app message, but web_app_data or from_user is None.")
         await message.answer("❌ Ошибка: не удалось получить данные формы или информацию о пользователе.")
