@@ -158,10 +158,10 @@ async def web_app_data_handler(message: Message):
 
 
 @dp.callback_query(F.data == "print_ticket")
-async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
+async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: str = ""):
     """
     Handles the "Print" button click.
-    Shows a temporary printer emoji, downloads the PDF, and then cleans up.
+    Shows a temporary printer emoji, downloads the PDF, sends it to PDFXCview, and cleans up.
     """
     # Гасим "часики" на кнопке без всплывающего текста
     await callback.answer("Подготовка к печати... 🖨️")
@@ -182,27 +182,50 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
         await callback.message.answer("❌ Документ не найден в сообщении.")
         return
 
-    # --- Отправляем временное сообщение с эмодзи ---
-    temp_msg = await callback.message.reply("🖨️")
+    # Проверяем, задан ли принтер при запуске бота
+    if not printer_name:
+        await callback.message.answer("❌ Внимание: Принтер не настроен. Запустите бота с флагом --print.")
+        return
+
+    # Отправляем временное сообщение с эмодзи
+    temp_msg = await callback.message.reply("🖨️ Печатаю...")
     
-    temp_pdf_path = f"temp_print_{document.file_id}.pdf"
+    # Делаем путь абсолютным, так как внешним программам нужен полный путь (C:\...)
+    temp_pdf_path = os.path.abspath(f"temp_print_{document.file_id}.pdf")
 
     try:
         # Скачиваем файл
         await bot.download(document, destination=temp_pdf_path)
         logger.info(f"Successfully downloaded PDF for printing: {temp_pdf_path}")
 
-        # --- ЗАГЛУШКА ПЕЧАТИ ---
-        logger.info(">>> TODO: Insert actual print logic here. <<<")
-        await asyncio.sleep(1.5) # Имитируем задержку печати, чтобы увидеть эмодзи
-        # ------------------------
+        # --- ЗАПУСК ПЕЧАТИ ---
+        logger.info(f"Sending document to printer: {printer_name}")
+        
+        # Запускаем PDFXCview асинхронно
+        # Если PDFXCview не добавлен в PATH Windows, укажи полный путь, например: "C:\\Program Files\\Tracker Software\\PDF Viewer\\PDFXCview.exe"
+        process = await asyncio.create_subprocess_exec(
+            "PDFXCview", 
+            "/printto", 
+            printer_name, 
+            temp_pdf_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        
+        # Ждем завершения команды
+        stdout, stderr = await process.communicate()
 
-        # Мы убрали сообщение об успешном скачивании, чтобы не засорять чат
+        if process.returncode == 0:
+            logger.info("Print command executed successfully.")
+        else:
+            error_msg = stderr.decode('utf-8', errors='ignore') or "Неизвестная ошибка"
+            logger.error(f"Print command failed with return code {process.returncode}: {error_msg}")
+            await callback.message.reply("❌ Произошла ошибка при отправке задания на принтер.")
+        # ------------------------
 
     except Exception as e:
         logger.error(f"Failed to process document for printing: {e}")
-        # Ошибку все-таки лучше показать, если что-то пошло не так
-        await callback.message.reply("❌ Произошла ошибка при подготовке к печати.")
+        await callback.message.reply("❌ Произошла непредвиденная ошибка при подготовке к печати.")
     finally:
         # 1. Удаляем скачанный PDF-файл
         if os.path.exists(temp_pdf_path):
@@ -211,6 +234,7 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
                 logger.info(f"Cleaned up temporary print file: {temp_pdf_path}")
             except Exception as e:
                 logger.warning(f"Failed to delete {temp_pdf_path}: {e}")
+                
         # 2. Удаляем временное сообщение с эмодзи
         try:
             await temp_msg.delete()
