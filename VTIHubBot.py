@@ -62,16 +62,18 @@ async def handle_plain_text(message: Message):
 
 
 @dp.message(F.web_app_data)
-async def web_app_data_handler(message: Message):
+async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = ""):
     """
     Catches and processes the JSON data sent from the Web App.
-    Generates a PDF ticket and sends it back to the user.
+    Generates a PDF ticket, sends it to the channel, and sends it back to the user.
     """
+    # 1. Delete the gray system message "Data from the Web App..."
     try:
         await message.delete()
     except Exception as e:
-        logger.warning(f"Не удалось удалить сообщение с web_app_data: {e}")
+        logger.warning(f"Failed to delete web_app_data system message: {e}")
         
+    # 2. Defensive check
     if not message.web_app_data or not message.from_user:
         logger.warning("Received a web app message, but web_app_data or from_user is None.")
         await message.answer("❌ Ошибка: не удалось получить данные формы или информацию о пользователе.")
@@ -80,16 +82,14 @@ async def web_app_data_handler(message: Message):
     status_msg = await message.answer("<i>Обрабатываю данные и генерирую тикет... 🖨️</i>")
 
     try:
+        # 3. Parse data
         raw_data = message.web_app_data.data
         parsed_data = json.loads(raw_data)
         
-        # --- NEW: Format the phone number ---
         raw_phone = parsed_data.get('phone', 'N/A')
         formatted_phone = format_phone_number(raw_phone)
-        
         description = parsed_data.get('description', 'Нет описания')
         
-        # --- NEW: Use @username if available, otherwise fallback to first_name ---
         user = message.from_user
         if user.username:
             operator_name = f"@{user.username}"
@@ -101,7 +101,7 @@ async def web_app_data_handler(message: Message):
         
         logger.info(f"Generating PDF for {operator_name}...")
         
-        # We pass the formatted_phone to the PDF generator so it looks nice on paper too!
+        # 4. Generate PDF
         pdf_path = ticket_generator.create_multipage_label(
             filename=unique_filename,
             operator_name=operator_name,
@@ -111,8 +111,7 @@ async def web_app_data_handler(message: Message):
         )
         
         if pdf_path and os.path.exists(pdf_path):
-            document = FSInputFile(pdf_path)
-            
+            # Base caption
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
@@ -122,18 +121,45 @@ async def web_app_data_handler(message: Message):
                 f"📝 Описание: {description}"
             )
 
+            # --- 5. SEND TO CHANNEL ---
+            channel_link = ""
+            if channel_id:
+                try:
+                    # We need a fresh FSInputFile for each send operation
+                    channel_doc = FSInputFile(pdf_path)
+                    sent_msg = await bot.send_document(
+                        chat_id=channel_id,
+                        document=channel_doc,
+                        caption=caption_text
+                    )
+                    logger.info(f"Successfully sent ticket to channel {channel_id}")
+                    
+                    # Generate the link to the channel message if it's a supergroup/channel (-100...)
+                    if str(channel_id).startswith("-100"):
+                        clean_channel_id = str(channel_id)[4:]
+                        channel_link = f"\n\n🔗 <a href='https://t.me/c/{clean_channel_id}/{sent_msg.message_id}'>Посмотреть вашу заявку в канале</a>"
+                except Exception as e:
+                    logger.error(f"Failed to send to channel {channel_id}: {e}")
+
+            # --- 6. SEND TO USER ---
+            user_caption = caption_text + channel_link
+
             print_btn = InlineKeyboardButton(
                 text="🖨️ Print", 
                 callback_data="print_ticket"
             )
             keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
             
+            # Second fresh FSInputFile for the user
+            user_doc = FSInputFile(pdf_path)
+            
             await message.answer_document(
-                document=document,
-                caption=caption_text,
+                document=user_doc,
+                caption=user_caption,
                 reply_markup=keyboard
             )
             
+            # 7. Clean up
             try:
                 os.remove(pdf_path)
                 logger.info(f"Deleted temporary file {pdf_path}")
@@ -150,6 +176,7 @@ async def web_app_data_handler(message: Message):
         logger.error(f"Unexpected error in web_app_data_handler: {e}")
         await message.answer("❌ Произошла непредвиденная ошибка при обработке данных.")
     finally:
+        # Delete the temporary "Processing..." message
         try:
             await status_msg.delete()
         except Exception:
@@ -270,13 +297,15 @@ async def main():
     parser = argparse.ArgumentParser(description="VTI Hub Ticket Bot on Aiogram 3")
     parser.add_argument('--token', required=True, help='Your Telegram Bot Token')
     # NEW ARGUMENT FOR PRINTER:
-    parser.add_argument('--print', dest='printer_name', default=None, help='Printer name for IrfanView')
+    parser.add_argument('--print', dest='printer_name', default="", help='Printer name for PDFXCview')
+    parser.add_argument('--channel', dest='channel_id', default="", help='Target Channel ID')
     args = parser.parse_args()
 
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
-    # Inject the printer_name into the dispatcher so our callback handler can use it
+    # Inject args into the dispatcher so our callback handler can use it
     dp["printer_name"] = args.printer_name
+    dp["channel_id"] = args.channel_id
     
     logger.info("Starting bot...")
     if args.printer_name:
