@@ -52,6 +52,14 @@ async def cmd_start(message: Message):
         reply_markup=keyboard
     )
 
+@dp.message(F.text)
+async def handle_plain_text(message: Message):
+    """
+    Catches any plain text message and routes it to the start command.
+    DRY principle in action!
+    """
+    await cmd_start(message)
+
 
 @dp.message(F.web_app_data)
 async def web_app_data_handler(message: Message):
@@ -143,11 +151,6 @@ async def web_app_data_handler(message: Message):
             pass
 
 
-
-# Убедись, что импортировал Message
-from aiogram.types import CallbackQuery, Message
-import os
-import asyncio
 
 @dp.callback_query(F.data == "print_ticket")
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot):
