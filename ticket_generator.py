@@ -3,8 +3,8 @@ import logging
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-# Убрали импорты Table, TableStyle и Image, так как они больше не нужны
-from reportlab.platypus import Paragraph, Frame, BaseDocTemplate, PageTemplate, Flowable
+# ВЕРНУЛИ импорт Image, так как теперь передаем картинку во Фрейм
+from reportlab.platypus import Paragraph, Frame, BaseDocTemplate, PageTemplate, Flowable, Image
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 
@@ -42,7 +42,7 @@ def create_multipage_label(
         
         # Стили для шапки
         style_header_title = ParagraphStyle(
-            'HeaderTitle', fontName=font_name, fontSize=10, leading=11, alignment=TA_LEFT
+            'HeaderTitle', fontName=font_name, fontSize=11, leading=11, alignment=TA_LEFT
         )
         style_header_text = ParagraphStyle(
             'HeaderText', fontName=font_name, fontSize=7, leading=7.5, alignment=TA_LEFT
@@ -55,22 +55,29 @@ def create_multipage_label(
             Paragraph("8 (978) 762-89-67", style_header_text)
         ]
 
-        # --- ОТРИСОВКА ЛОГОТИПА ВРУЧНУЮ ---
+        # --- НОВЫЙ ФРЕЙМ ДЛЯ ЛОГОТИПА ---
+        logo_frame = Frame(
+            0*mm, 29*mm, 12*mm, 11*mm, 
+            leftPadding=2*mm, bottomPadding=1.5*mm, rightPadding=2*mm, topPadding=1.5*mm,
+            showBoundary=1 # Включено для дебага
+        )
+
         if os.path.exists(logo_path):
-            # Рисуем логотип на координатах x=2mm, y=30.5mm
-            canvas.drawImage(logo_path, 2*mm, 30.5*mm, width=8*mm, height=8*mm, mask='auto')
+            # Создаем объект Image и закидываем его в фрейм
+            logo_img = Image(logo_path, width=8*mm, height=8*mm)
+            logo_frame.addFromList([logo_img], canvas)
         else:
             logger.warning(f"Логотип не найден по пути {logo_path}, пропускаем.")
 
         # --- ФРЕЙМ ТОЛЬКО ДЛЯ ТЕКСТА ШАПКИ ---
-        # Начинается по X с 11 мм (чтобы пропустить логотип), по Y с 29 мм
+        # Начинается по X с 12 мм, по Y с 29 мм
         header_frame = Frame(
-            12*mm, 29*mm, width - 11*mm, 11*mm, 
-            leftPadding=1*mm, bottomPadding=0, rightPadding=2*mm, topPadding=1*mm,
-            showBoundary=0 # Поставь 1, чтобы увидеть границы текста шапки
+            12*mm, 29*mm, width - 12*mm, 11*mm, 
+            leftPadding=2*mm, bottomPadding=0, rightPadding=2*mm, topPadding=1*mm,
+            showBoundary=1 # Включено для дебага
         )
         
-        # Добавляем текст во фрейм и рисуем на холсте
+        # Добавляем текст во фрейм
         header_frame.addFromList(header_text_elements, canvas)
 
         # Разделительная линия на 29 мм
@@ -87,7 +94,7 @@ def create_multipage_label(
     frame = Frame(
         0, 0, width, 29*mm, 
         leftPadding=2*mm, bottomPadding=1*mm, rightPadding=2*mm, topPadding=1*mm,
-        showBoundary=0 
+        showBoundary=1 # Включено для дебага
     )
     
     template = PageTemplate(id='LabelTemplate', frames=[frame], onPage=draw_header)
