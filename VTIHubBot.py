@@ -99,7 +99,7 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         else:
             operator_name = user.first_name or "Неизвестный оператор"
             
-                
+
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         
         # НОВОЕ: Добавляем путь к папке кеша в имя файла
@@ -192,12 +192,10 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: str = ""):
     """
     Обрабатывает нажатие на кнопку печати.
-    Скачивает PDF, отправляет в PDFXCview и убивает процесс, если он завис.
-    Все статусные сообщения отправляются пользователю в личку, чтобы не спамить в канал.
+    Ищет PDF в локальном кеше. Если нет - скачивает. Отправляет в PDFXCview.
     """
     await callback.answer("Подготовка к печати... 🖨️")
 
-    # Получаем ID пользователя, который нажал на кнопку
     user_id = callback.from_user.id
 
     if not callback.message or not isinstance(callback.message, Message):
@@ -217,34 +215,40 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
         await bot.send_message(user_id, "❌ Внимание: Принтер не настроен. Запустите бота с флагом --print.")
         return
 
-    # Отправляем сообщение с эмодзи ЛИЧНО пользователю
     try:
         temp_msg = await bot.send_message(user_id, "🖨️")
     except Exception as e:
-        logger.error(f"Не удалось отправить сообщение пользователю {user_id} (возможно, бот заблокирован): {e}")
+        logger.error(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
         return
 
-    temp_pdf_path = os.path.abspath(f"temp_print_{document.file_id}.pdf")
+    # --- НОВОЕ: ЛОГИКА КЕШИРОВАНИЯ ---
+    # Получаем оригинальное имя файла (или генерируем запасное из file_id)
+    file_name = document.file_name or f"ticket_recovered_{document.file_id}.pdf"
     
-    # Настраиваем время ожидания в секундах
+    # Строим полный путь к файлу в нашей папке кеша
+    cached_pdf_path = os.path.abspath(os.path.join(CACHE_DIR, file_name))
+    
     PRINT_TIMEOUT = 10.0 
 
     try:
-        await bot.download(document, destination=temp_pdf_path)
-        logger.info(f"Downloaded PDF: {temp_pdf_path}")
-        
+        # Проверяем, есть ли файл на диске
+        if not os.path.exists(cached_pdf_path):
+            logger.info(f"Файл {file_name} не найден в кеше. Скачиваем из Telegram...")
+            await bot.download(document, destination=cached_pdf_path)
+        else:
+            logger.info(f"Файл {file_name} найден в кеше! Пропускаем скачивание.")
+
         # Запускаем PDFXCview асинхронно
         process = await asyncio.create_subprocess_exec(
             "PDFXCview", 
             "/printto", 
             printer_name, 
-            temp_pdf_path,
+            cached_pdf_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
         
         try:
-            # Ждем выполнения команды с ограничением по времени
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
             
             if process.returncode == 0:
@@ -255,13 +259,12 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
                 await bot.send_message(user_id, "❌ Произошла ошибка при отправке на принтер.")
                 
         except asyncio.TimeoutError:
-            # Если время вышло, принудительно убиваем процесс PDFXCview
             logger.error(f"Процесс печати завис (превышен таймаут {PRINT_TIMEOUT}с). Убиваем процесс...")
             try:
                 process.kill()
-                await process.communicate() # Позволяем asyncio очистить ресурсы убитого процесса
+                await process.communicate()
             except ProcessLookupError:
-                pass # Процесс уже успел завершиться сам
+                pass 
             
             await bot.send_message(user_id, f"❌ Принтер или программа не отвечают (таймаут {PRINT_TIMEOUT} сек).")
 
@@ -269,13 +272,8 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
         logger.error(f"Непредвиденная ошибка при подготовке к печати: {e}")
         await bot.send_message(user_id, "❌ Произошла непредвиденная ошибка.")
     finally:
-        # Убираем за собой файл и сообщение с эмодзи
-        if os.path.exists(temp_pdf_path):
-            try:
-                os.remove(temp_pdf_path)
-            except Exception as e:
-                logger.warning(f"Не удалось удалить файл {temp_pdf_path}: {e}")
-                
+        # НОВОЕ: Мы больше НЕ удаляем pdf-файл (os.remove убран)
+        # Удаляем только статусное сообщение с эмодзи
         try:
             await temp_msg.delete()
         except Exception:
