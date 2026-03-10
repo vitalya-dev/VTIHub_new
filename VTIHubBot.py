@@ -27,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub/ticket_app.html"
 
+CACHE_DIR = "pdf_cache"
+os.makedirs(CACHE_DIR, exist_ok=True) # Создаст папку, если её нет
+
 dp = Dispatcher()
 
 # --- HANDLERS ---
@@ -96,8 +99,11 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         else:
             operator_name = user.first_name or "Неизвестный оператор"
             
+                
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-        unique_filename = f"ticket_{user.id}_{datetime.now().strftime('%H%M%S')}.pdf"
+        
+        # НОВОЕ: Добавляем путь к папке кеша в имя файла
+        unique_filename = os.path.join(CACHE_DIR, f"ticket_{user.id}_{datetime.now().strftime('%H%M%S')}.pdf")
         
         logger.info(f"Generating PDF for {operator_name}...")
         
@@ -126,11 +132,10 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
             )
             keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
 
-            # Переменная для хранения ID загруженного файла
             reusable_file_id = None 
             channel_link = ""
 
-            # --- 5. SEND TO CHANNEL (ЗАГРУЖАЕМ ФАЙЛ ОДИН РАЗ) ---
+            # --- 5. SEND TO CHANNEL ---
             if channel_id:
                 try:
                     channel_doc = FSInputFile(pdf_path)
@@ -142,7 +147,6 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                     )
                     logger.info(f"Successfully sent ticket to channel {channel_id}")
                     
-                    # НОВОЕ: Сохраняем file_id загруженного документа!
                     if sent_msg.document:
                         reusable_file_id = sent_msg.document.file_id
                     
@@ -152,26 +156,20 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 except Exception as e:
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
 
-            # --- 6. SEND TO USER (ИСПОЛЬЗУЕМ file_id) ---
+            # --- 6. SEND TO USER ---
             user_caption = caption_text + channel_link
             
-            # НОВОЕ: Если мы уже загрузили файл в канал и получили file_id, 
-            # используем его. Если нет (например, канал не настроен или была ошибка), 
-            # грузим с диска заново.
             user_doc = reusable_file_id if reusable_file_id else FSInputFile(pdf_path)
             
             await message.answer_document(
                 document=user_doc,
                 caption=user_caption,
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_web_page_preview=True
             )
             
-            # 7. Clean up
-            try:
-                os.remove(pdf_path)
-                logger.info(f"Deleted temporary file {pdf_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete temporary file {pdf_path}: {e}")
+            # НОВОЕ: Блок с os.remove(pdf_path) УДАЛЕН. Файл остается в кеше!
+            logger.info(f"File {pdf_path} saved in cache.")
                 
         else:
             await message.answer("❌ Произошла ошибка при создании PDF-документа.")
@@ -183,7 +181,6 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         logger.error(f"Unexpected error in web_app_data_handler: {e}")
         await message.answer("❌ Произошла непредвиденная ошибка при обработке данных.")
     finally:
-        # Delete the temporary "Processing..." message
         try:
             await status_msg.delete()
         except Exception:
