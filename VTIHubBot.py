@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import CommandStart
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, WebAppInfo, FSInputFile # NEW: FSInputFile for sending documents
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -194,9 +195,16 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
     Обрабатывает нажатие на кнопку печати.
     Ищет PDF в локальном кеше. Если нет - скачивает. Отправляет в PDFXCview.
     """
-    await callback.answer("Подготовка к печати... 🖨️")
-
     user_id = callback.from_user.id
+
+    # --- НОВОЕ: Безопасный ответ на нажатие ---
+    try:
+        await callback.answer("Подготовка к печати... 🖨️")
+    except TelegramBadRequest:
+        logger.warning(f"Клик от {user_id} устарел, пропускаем всплывающее уведомление.")
+    except Exception as e:
+        logger.error(f"Не удалось ответить на callback: {e}")
+    # ------------------------------------------
 
     if not callback.message or not isinstance(callback.message, Message):
         logger.warning(f"Print callback from user {user_id}: Message is missing.")
