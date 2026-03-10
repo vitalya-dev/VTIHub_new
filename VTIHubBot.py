@@ -240,8 +240,8 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
 
         # Запускаем PDFXCview асинхронно
         process = await asyncio.create_subprocess_exec(
-            "PDFXCview", 
-            "/printto", 
+            "PDFXCview",
+            "/printto:pages=1", 
             printer_name, 
             cached_pdf_path,
             stdout=asyncio.subprocess.PIPE,
