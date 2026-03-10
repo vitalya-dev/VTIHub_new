@@ -250,7 +250,11 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
         
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
-            
+            if stdout:
+                # Декодируем сырые байты в строку. errors='replace' защитит от падения, если кодировка системная (например, Windows CP866)
+                program_output = stdout.decode('utf-8', errors='replace').strip()
+                if program_output:
+                    logger.info(f"PDFXCview stdout:\n{program_output}")
             if process.returncode == 0:
                 logger.info(f"Успешно отправлено на печать пользователем {user_id}.")
             else:
