@@ -313,34 +313,87 @@ def format_phone_number(phone_str: str) -> str:
         # Return as is if it doesn't match standard RU formats
         return phone_str
 
+async def monitor_database(db_path: str):
+    """
+    Фоновая асинхронная задача: проверяет изменение файла БД.
+    """
+    if not os.path.exists(db_path):
+        logger.error(f"Файл БД не найден по пути: {db_path}. Мониторинг остановлен.")
+        return
+
+    logger.info(f"Начинаем мониторинг базы данных: {db_path}")
+    
+    last_mtime = os.path.getmtime(db_path)
+
+    while True:
+        try:
+            await asyncio.sleep(5)
+            
+            current_mtime = os.path.getmtime(db_path)
+            
+            if current_mtime != last_mtime:
+                logger.info("🚨 ВНИМАНИЕ: ФАЙЛ БАЗЫ ДАННЫХ БЫЛ ИЗМЕНЕН! 🚨")
+                last_mtime = current_mtime
+                
+                # TODO: Логика обработки новых записей
+                
+        except FileNotFoundError:
+            logger.warning(f"Потерян доступ к файлу БД ({db_path}). Проверяю снова через 5 секунд...")
+        except Exception as e:
+            logger.error(f"Непредвиденная ошибка при мониторинге БД: {e}")
+
+@dp.startup()
+async def on_startup(bot: Bot, dispatcher: Dispatcher):
+    """
+    Выполняется один раз при старте бота.
+    """
+    # Достаем путь к БД, который мы передадим при запуске
+    db_path = dispatcher.get("db_path")
+    
+    if db_path:
+        logger.info("Запускаем фоновые задачи...")
+        asyncio.create_task(monitor_database(db_path))
+    else:
+        logger.info("Путь к БД не указан (--db). Мониторинг отключен.")
 
 
 # --- UPDATE MAIN RUNNER ---
 async def main():
     parser = argparse.ArgumentParser(description="VTI Hub Ticket Bot on Aiogram 3")
     parser.add_argument('--token', required=True, help='Your Telegram Bot Token')
-    # NEW ARGUMENT FOR PRINTER:
     parser.add_argument('--print', dest='printer_name', default="", help='Printer name for PDFXCview')
-    parser.add_argument('--channel', dest='channel_id', default="", help='Target Channel ID')
+    parser.add_argument('--channel', dest='channel_id', default="", help='Target Channel ID (e.g., -1001234567890)')
+    parser.add_argument('--db', dest='db_path', default="", help='Path to the SQLite database on Samba share')
+    
     args = parser.parse_args()
 
+    # Инициализируем бота с дефолтным парсингом HTML
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
-    # Inject args into the dispatcher so our callback handler can use it
+    # Прокидываем все настройки в диспетчер, чтобы они были доступны в хэндлерах и при старте
     dp["printer_name"] = args.printer_name
     dp["channel_id"] = args.channel_id
+    dp["db_path"] = args.db_path
     
     logger.info("Starting bot...")
+    
+    # Красиво выводим в консоль, какие модули у нас сейчас активны
     if args.printer_name:
-        logger.info(f"Printer configured: {args.printer_name}")
+        logger.info(f"🖨️ Printer configured: {args.printer_name}")
+    if args.channel_id:
+        logger.info(f"📢 Channel configured: {args.channel_id}")
+    if args.db_path:
+        logger.info(f"🗄️ Database configured: {args.db_path}")
 
     try:
+        # Пропускаем старые апдейты, чтобы бот не начал отвечать на кнопки, нажатые пока он спал
         await bot.delete_webhook(drop_pending_updates=True)
+        # Запускаем поллинг (и попутно триггерим @dp.startup)
         await dp.start_polling(bot)
     except Exception as e:
-        logger.error(f"An error occurred during polling: {e}")
+        logger.error(f"❌ An error occurred during polling: {e}")
     finally:
-        logger.info("Bot has been stopped.")
+        logger.info("🛑 Bot has been stopped.")
 
 if __name__ == '__main__':
     try:
