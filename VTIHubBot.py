@@ -31,6 +31,80 @@ WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub/ticket_app.html"
 CACHE_DIR = "pdf_cache"
 os.makedirs(CACHE_DIR, exist_ok=True) # Создаст папку, если её нет
 
+import sqlite3
+import hashlib
+from typing import Optional
+
+# --- КОНСТАНТЫ ДЛЯ БД ---
+# Секретный ключ для защиты файла с последним ID от ручного изменения
+ID_STORAGE_SECRET_KEY = "your_very_secret_and_unique_key_here" # Замени на любую сложную строку
+ID_STORAGE_DIR = "bot_data" # Папка, где бот будет хранить файл памяти
+os.makedirs(ID_STORAGE_DIR, exist_ok=True)
+
+# --- ФУНКЦИИ ДЛЯ РАБОТЫ С БД И ПАМЯТЬЮ ---
+
+def connect_db(db_path: str) -> Optional[sqlite3.Connection]:
+    """Устанавливает безопасное (только для чтения) подключение к SQLite."""
+    try:
+        # uri=True и ?mode=ro гарантируют, что мы случайно ничего не удалим из базы
+        conn = sqlite3.connect(f'file:{db_path}?mode=ro', uri=True)
+        # Позволяет обращаться к колонкам по их названию (например, row['case_number'])
+        conn.row_factory = sqlite3.Row 
+        return conn
+    except sqlite3.Error as e:
+        logger.error(f"Ошибка подключения к БД {db_path}: {e}")
+        return None
+
+def load_last_known_id_from_file(file_path: str) -> Optional[int]:
+    """Загружает последний обработанный ID из файла памяти и проверяет его хеш."""
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                data_from_file = json.load(f)
+                
+            stored_id = data_from_file.get("last_id")
+            stored_hash = data_from_file.get("hash")
+
+            if stored_id is None or stored_hash is None or not isinstance(stored_id, int):
+                logger.warning(f"Неверный формат данных в файле памяти: {file_path}")
+                return None
+
+            # Создаем проверочный хеш
+            data_to_verify = f"{stored_id}{ID_STORAGE_SECRET_KEY}"
+            expected_hash = hashlib.sha256(data_to_verify.encode('utf-8')).hexdigest()
+
+            if expected_hash == stored_hash:
+                return stored_id
+            else:
+                logger.critical(f"ВНИМАНИЕ: Файл памяти {file_path} поврежден! Хеши не совпадают.")
+                return None
+        else:
+            return None
+    except Exception as e:
+        logger.error(f"Ошибка чтения ID из файла {file_path}: {e}")
+        return None
+
+def save_last_known_id_to_file(file_path: str, last_id: int) -> None:
+    """Сохраняет текущий ID и его защитный хеш в файл памяти."""
+    try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Генерируем хеш
+        data_to_hash = f"{last_id}{ID_STORAGE_SECRET_KEY}"
+        current_hash = hashlib.sha256(data_to_hash.encode('utf-8')).hexdigest()
+        
+        data_to_store = {
+            "last_id": last_id,
+            "hash": current_hash
+        }
+        
+        with open(file_path, 'w') as f:
+            json.dump(data_to_store, f)
+            
+    except Exception as e:
+        logger.error(f"Ошибка сохранения ID {last_id} в файл {file_path}: {e}")
+
+
 dp = Dispatcher()
 
 # --- HANDLERS ---
