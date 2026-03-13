@@ -521,7 +521,6 @@ async def monitor_database(db_path: str):
     db_id_storage_file_path = os.path.join(ID_STORAGE_DIR, f"last_processed_id_{db_name}.json")
 
     # Инициализация последнего известного ID
-    # В aiogram запросы к БД лучше делать через to_thread, чтобы не замораживать бота
     last_known_id = load_last_known_id_from_file(db_id_storage_file_path)
     
     if last_known_id is None:
@@ -531,6 +530,27 @@ async def monitor_database(db_path: str):
         logger.info(f"Начинаем работу с ID: {last_known_id}")
     else:
         logger.info(f"Загружен последний обработанный ID из памяти: {last_known_id}")
+
+    # --- НОВОЕ: ПЕРВИЧНАЯ ПРОВЕРКА ПРИ СТАРТЕ ---
+    logger.info("Проверяем, не накопились ли новые заявки пока бот спал...")
+    initial_cases = await asyncio.to_thread(get_new_cases_from_db, db_path, last_known_id)
+    
+    if initial_cases:
+        logger.info(f"Найдено {len(initial_cases)} пропущенных заявок! Начинаем обработку.")
+        max_id_in_batch = last_known_id
+        
+        for case_row in initial_cases:
+            await process_and_send_db_case(case_row)
+            if case_row['primkey_case'] > max_id_in_batch:
+                max_id_in_batch = case_row['primkey_case']
+                
+        if max_id_in_batch > last_known_id:
+            last_known_id = max_id_in_batch
+            save_last_known_id_to_file(db_id_storage_file_path, last_known_id)
+            logger.info(f"Пропущенные заявки обработаны. Новый последний ID: {last_known_id}")
+    else:
+        logger.info("Пропущенных заявок нет. База актуальна.")
+    # --- КОНЕЦ ПЕРВИЧНОЙ ПРОВЕРКИ ---
 
     last_mtime = os.path.getmtime(db_path)
 
@@ -545,25 +565,21 @@ async def monitor_database(db_path: str):
                 logger.info("🚨 Обнаружено изменение файла БД! Ждем завершения записи...")
                 last_mtime = current_mtime
                 
-                # Ждем пару секунд, чтобы внешняя программа успела полностью записать 
-                # данные в SQLite и снять блокировку файла
+                # Ждем пару секунд, чтобы внешняя программа успела полностью записать данные
                 await asyncio.sleep(2) 
                 
-                # Запрашиваем новые заявки в отдельном потоке (to_thread)
+                # Запрашиваем новые заявки
                 new_cases = await asyncio.to_thread(get_new_cases_from_db, db_path, last_known_id)
                 
                 if new_cases:
                     max_id_in_batch = last_known_id
                     
                     for case_row in new_cases:
-                        # Вызываем нашу тестовую функцию логирования
                         await process_and_send_db_case(case_row)
                         
-                        # Запоминаем самый большой ID из пачки
                         if case_row['primkey_case'] > max_id_in_batch:
                             max_id_in_batch = case_row['primkey_case']
                     
-                    # Обновляем память, если обработали новые заявки
                     if max_id_in_batch > last_known_id:
                         last_known_id = max_id_in_batch
                         save_last_known_id_to_file(db_id_storage_file_path, last_known_id)
@@ -576,7 +592,7 @@ async def monitor_database(db_path: str):
             await asyncio.sleep(5)
         except Exception as e:
             logger.error(f"Непредвиденная ошибка при мониторинге БД: {e}", exc_info=True)
-            await asyncio.sleep(5) # Защита от бесконечного спама ошибками, если что-то сломалось
+            await asyncio.sleep(5)
 
 @dp.startup()
 async def on_startup(bot: Bot, dispatcher: Dispatcher):
