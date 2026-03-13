@@ -105,6 +105,63 @@ def save_last_known_id_to_file(file_path: str, last_id: int) -> None:
         logger.error(f"Ошибка сохранения ID {last_id} в файл {file_path}: {e}")
 
 
+def get_initial_max_case_id(db_path: str) -> int:
+    """
+    Получает максимальный ID заявки при первом запуске. 
+    Это нужно, чтобы бот не начал печатать все старые заявки, которые уже есть в базе.
+    """
+    conn = connect_db(db_path)
+    max_id = 0
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("SELECT MAX(primkey_case) FROM cases")
+            result = cursor.fetchone()
+            if result and result[0] is not None:
+                max_id = int(result[0])
+                logger.info(f"Начальный максимальный ID в БД: {max_id}")
+            else:
+                logger.info("БД пуста или заявок нет, начинаем с ID 0.")
+        except sqlite3.Error as e:
+            logger.error(f"Ошибка при получении максимального ID: {e}")
+        finally:
+            conn.close()
+    return max_id
+
+def get_new_cases_from_db(db_path: str, last_id: int) -> list[sqlite3.Row]:
+    """
+    Запрашивает из базы все новые заявки, у которых ID строго больше, чем last_id.
+    """
+    conn = connect_db(db_path)
+    new_cases = []
+    if conn:
+        try:
+            cursor = conn.cursor()
+            # Берем нужные поля из таблицы заявок (cases) 
+            # и подтягиваем имя сотрудника из таблицы (fellows) через LEFT JOIN
+            query = """
+                SELECT 
+                    c.primkey_case, c.case_number, c.department, c.type, c.manufacturer, 
+                    c.model, c.serial, c.reason, c.equipment, c.defects, c.condition, 
+                    c.fellow, c.client, c.phone, c.dp_phone, c.date_input, 
+                    c.note_output, c.client_text,
+                    f.fellow_nickname, f.fellow_name 
+                FROM cases c
+                LEFT JOIN fellows f ON c.fellow = f.primkey_fellow
+                WHERE c.primkey_case > ?
+                ORDER BY c.primkey_case ASC
+            """
+            cursor.execute(query, (last_id,))
+            new_cases = cursor.fetchall()
+            if new_cases:
+                logger.info(f"Найдено {len(new_cases)} новых заявок в БД (после ID {last_id}).")
+        except sqlite3.Error as e:
+            logger.error(f"Ошибка при получении новых заявок: {e}")
+        finally:
+            conn.close()
+    return new_cases
+
+
 dp = Dispatcher()
 
 # --- HANDLERS ---
