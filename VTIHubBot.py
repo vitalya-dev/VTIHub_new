@@ -162,6 +162,68 @@ def get_new_cases_from_db(db_path: str, last_id: int) -> list[sqlite3.Row]:
     return new_cases
 
 
+async def process_and_send_db_case(case_data: sqlite3.Row) -> None:
+    """
+    ВРЕМЕННАЯ ФУНКЦИЯ ДЛЯ ТЕСТОВ: 
+    Парсит данные из БД и выводит их в лог. Отправка в канал пока отключена.
+    """
+    case_id = case_data['primkey_case']
+    logger.info(f"--- НАЧАЛО ОБРАБОТКИ ЗАЯВКИ ИЗ БД (ID: {case_id}) ---")
+
+    # 1. Кто принял заявку
+    submitter_id = case_data['fellow']
+    fellow_nickname = case_data['fellow_nickname']
+    fellow_name = case_data['fellow_name']
+    
+    user_identifier = "Сотрудник из БД"
+    if fellow_nickname:
+        user_identifier = fellow_nickname
+    elif fellow_name:
+        user_identifier = fellow_name
+    elif submitter_id:
+        user_identifier = f"ID сотрудника: {submitter_id}"
+
+    # 2. Время (конвертируем Unix timestamp из базы)
+    ts = case_data['date_input']
+    formatted_time = "Неизвестно"
+    if ts:
+        try:
+            formatted_time = datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M")
+        except Exception as e:
+            formatted_time = str(ts)
+
+    # 3. Телефон (используем твою готовую функцию format_phone_number)
+    raw_phone_db = case_data['phone'] if case_data['phone'] else case_data['dp_phone']
+    raw_phone_str = str(raw_phone_db) if raw_phone_db is not None else 'N/A'
+    formatted_phone = format_phone_number(raw_phone_str)
+
+    # 4. Собираем описание из разных полей (тип, производитель, модель, серийник)
+    db_device_model_parts = []
+    if case_data['type']: db_device_model_parts.append(case_data['type'])
+    if case_data['manufacturer']: db_device_model_parts.append(case_data['manufacturer'])
+    if case_data['model']: db_device_model_parts.append(case_data['model'])
+    if case_data['serial']: db_device_model_parts.append(f"(S/N: {case_data['serial']})")
+    
+    device_model = " ".join(filter(None, db_device_model_parts)).strip() or "Модель не указана"
+    issue_desc = case_data['reason'] or "Неисправность не указана"
+    accessories = case_data['equipment'] or ""
+
+    # Склеиваем всё в один текст описания
+    description = f"{device_model}. {issue_desc}"
+    if accessories:
+        description += f". Комплект: {accessories}"
+
+    client_name = case_data['client'] or 'Не указан'
+
+    # 5. Выводим всё в консоль для проверки
+    logger.info(f"Номер заявки (case_number): {case_data['case_number']}")
+    logger.info(f"Сотрудник: {user_identifier}")
+    logger.info(f"Время: {formatted_time}")
+    logger.info(f"Телефон: {formatted_phone}")
+    logger.info(f"Клиент: {client_name}")
+    logger.info(f"Описание: {description}")
+    logger.info(f"--- КОНЕЦ ОБРАБОТКИ ЗАЯВКИ (ID: {case_id}) ---")
+
 dp = Dispatcher()
 
 # --- HANDLERS ---
