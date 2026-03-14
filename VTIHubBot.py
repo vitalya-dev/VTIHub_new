@@ -506,6 +506,24 @@ def format_phone_number(phone_str: str) -> str:
         # Return as is if it doesn't match standard RU formats
         return phone_str
 
+def get_phone_hashtag(phone_str: str) -> str:
+    """
+    Извлекает последние 4 цифры из номера телефона для создания хештега.
+    """
+    if not phone_str or phone_str == 'N/A':
+        return "" # Если номера нет, хештег не делаем
+
+    # re.sub(r'\D', '', ...) удаляет всё, кроме цифр (оставляет только 0-9)
+    digits_only = re.sub(r'\D', '', phone_str)
+
+    # Если цифр 4 или больше, берем последние 4. Иначе берем то, что есть.
+    if len(digits_only) >= 4:
+        return f"#{digits_only[-4:]}"
+    elif len(digits_only) > 0:
+        return f"#{digits_only}"
+    else:
+        return ""
+
 async def monitor_database(db_path: str):
     """
     Фоновая асинхронная задача: проверяет изменение файла БД и обрабатывает новые заявки.
