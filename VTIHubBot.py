@@ -311,6 +311,10 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         )
         
         if pdf_path and os.path.exists(pdf_path):
+            # --- НОВОЕ: Генерируем хештег ---
+            phone_hashtag = get_phone_hashtag(raw_phone)
+            hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
+
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
@@ -318,6 +322,7 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 f"--- Детали заявки ---\n"
                 f"📞 Телефон: <code>{formatted_phone}</code>\n"
                 f"📝 Описание: {description}"
+                f"{hashtag_line}" # Добавляем хештег в конец сообщения
             )
 
             print_btn = InlineKeyboardButton(
