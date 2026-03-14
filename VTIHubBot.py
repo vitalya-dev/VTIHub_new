@@ -514,18 +514,19 @@ def format_phone_number(phone_str: str) -> str:
 def get_phone_hashtag(phone_str: str) -> str:
     """
     Извлекает последние 4 цифры из номера телефона для создания хештега.
+    Добавляет букву 't', так как Telegram не делает хештеги только из цифр кликабельными.
     """
     if not phone_str or phone_str == 'N/A':
         return "" # Если номера нет, хештег не делаем
 
-    # re.sub(r'\D', '', ...) удаляет всё, кроме цифр (оставляет только 0-9)
+    # Удаляем всё, кроме цифр
     digits_only = re.sub(r'\D', '', phone_str)
 
-    # Если цифр 4 или больше, берем последние 4. Иначе берем то, что есть.
+    # Если цифр 4 или больше, берем последние 4 и добавляем '#t'. Иначе берем то, что есть.
     if len(digits_only) >= 4:
-        return f"#{digits_only[-4:]}"
+        return f"#t{digits_only[-4:]}"
     elif len(digits_only) > 0:
-        return f"#{digits_only}"
+        return f"#t{digits_only}"
     else:
         return ""
 
