@@ -242,7 +242,7 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
             f"📞 Телефон: <code>{formatted_phone}</code>\n"
             f"📝 Описание: {description}"
             f"{hashtag_line}\n"
-            f"^^^^^^^^" # <-- Визуальный разделитель под чек для канала
+            f"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" # <-- Визуальный разделитель под чек для канала
         )
 
         print_btn = InlineKeyboardButton(
@@ -381,7 +381,7 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
             # --- 5. SEND TO CHANNEL ---
             if channel_id:
                 # Добавляем "отрывную" линию чека ТОЛЬКО для канала
-                channel_caption = caption_text + "\n^^^^^^^^" 
+                channel_caption = caption_text + "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" 
                 
                 try:
                     channel_doc = FSInputFile(pdf_path)
