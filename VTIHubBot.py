@@ -583,7 +583,7 @@ def get_phone_hashtag(phone_str: str) -> str:
     # Объединяем все собранные теги в одну строку через пробел
     return " ".join(tags)
 
-async def monitor_database(db_path: str):
+async def monitor_database(db_path: str, bot: Bot, channel_id: str = ""):
     """
     Фоновая асинхронная задача: проверяет изменение файла БД и обрабатывает новые заявки.
     """
@@ -608,7 +608,7 @@ async def monitor_database(db_path: str):
     else:
         logger.info(f"Загружен последний обработанный ID из памяти: {last_known_id}")
 
-    # --- НОВОЕ: ПЕРВИЧНАЯ ПРОВЕРКА ПРИ СТАРТЕ ---
+    # --- ПЕРВИЧНАЯ ПРОВЕРКА ПРИ СТАРТЕ ---
     logger.info("Проверяем, не накопились ли новые заявки пока бот спал...")
     initial_cases = await asyncio.to_thread(get_new_cases_from_db, db_path, last_known_id)
     
@@ -617,7 +617,8 @@ async def monitor_database(db_path: str):
         max_id_in_batch = last_known_id
         
         for case_row in initial_cases:
-            await process_and_send_db_case(case_row)
+            # Передаем bot и channel_id
+            await process_and_send_db_case(case_row, bot, channel_id)
             if case_row['primkey_case'] > max_id_in_batch:
                 max_id_in_batch = case_row['primkey_case']
                 
@@ -652,7 +653,8 @@ async def monitor_database(db_path: str):
                     max_id_in_batch = last_known_id
                     
                     for case_row in new_cases:
-                        await process_and_send_db_case(case_row)
+                        # Передаем bot и channel_id
+                        await process_and_send_db_case(case_row, bot, channel_id)
                         
                         if case_row['primkey_case'] > max_id_in_batch:
                             max_id_in_batch = case_row['primkey_case']
@@ -676,12 +678,15 @@ async def on_startup(bot: Bot, dispatcher: Dispatcher):
     """
     Выполняется один раз при старте бота.
     """
-    # Достаем путь к БД, который мы передадим при запуске
-    db_path = dispatcher.get("db_path")
+    # Достаем путь к БД и ID канала, которые мы передали в диспетчер при запуске.
+    # Явно приводим к str(), чтобы анализаторы типов понимали, с чем работают, и не выдавали Any | None.
+    db_path = str(dispatcher.get("db_path", ""))
+    channel_id = str(dispatcher.get("channel_id", ""))
     
     if db_path:
         logger.info("Запускаем фоновые задачи...")
-        asyncio.create_task(monitor_database(db_path))
+        # Передаем bot и channel_id в функцию мониторинга
+        asyncio.create_task(monitor_database(db_path, bot, channel_id))
     else:
         logger.info("Путь к БД не указан (--db). Мониторинг отключен.")
 
