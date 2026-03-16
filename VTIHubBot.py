@@ -162,10 +162,9 @@ def get_new_cases_from_db(db_path: str, last_id: int) -> list[sqlite3.Row]:
     return new_cases
 
 
-async def process_and_send_db_case(case_data: sqlite3.Row) -> None:
+async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id: str = "") -> None:
     """
-    ВРЕМЕННАЯ ФУНКЦИЯ ДЛЯ ТЕСТОВ: 
-    Парсит данные из БД и выводит их в лог. Отправка в канал пока отключена.
+    Обрабатывает заявку из БД: генерирует PDF и отправляет в канал (если указан).
     """
     case_id = case_data['primkey_case']
     logger.info(f"--- НАЧАЛО ОБРАБОТКИ ЗАЯВКИ ИЗ БД (ID: {case_id}) ---")
@@ -175,13 +174,13 @@ async def process_and_send_db_case(case_data: sqlite3.Row) -> None:
     fellow_nickname = case_data['fellow_nickname']
     fellow_name = case_data['fellow_name']
     
-    user_identifier = "Сотрудник из БД"
+    operator_name = "Сотрудник из БД"
     if fellow_nickname:
-        user_identifier = fellow_nickname
+        operator_name = fellow_nickname
     elif fellow_name:
-        user_identifier = fellow_name
+        operator_name = fellow_name
     elif submitter_id:
-        user_identifier = f"ID сотрудника: {submitter_id}"
+        operator_name = f"ID сотрудника: {submitter_id}"
 
     # 2. Время (конвертируем Unix timestamp из базы)
     ts = case_data['date_input']
@@ -192,12 +191,12 @@ async def process_and_send_db_case(case_data: sqlite3.Row) -> None:
         except Exception as e:
             formatted_time = str(ts)
 
-    # 3. Телефон (используем твою готовую функцию format_phone_number)
+    # 3. Телефон
     raw_phone_db = case_data['phone'] if case_data['phone'] else case_data['dp_phone']
     raw_phone_str = str(raw_phone_db) if raw_phone_db is not None else 'N/A'
     formatted_phone = format_phone_number(raw_phone_str)
 
-    # 4. Собираем описание из разных полей (тип, производитель, модель, серийник)
+    # 4. Собираем описание из разных полей
     db_device_model_parts = []
     if case_data['type']: db_device_model_parts.append(case_data['type'])
     if case_data['manufacturer']: db_device_model_parts.append(case_data['manufacturer'])
@@ -208,20 +207,58 @@ async def process_and_send_db_case(case_data: sqlite3.Row) -> None:
     issue_desc = case_data['reason'] or "Неисправность не указана"
     accessories = case_data['equipment'] or ""
 
-    # Склеиваем всё в один текст описания
     description = f"{device_model}. {issue_desc}"
     if accessories:
         description += f". Комплект: {accessories}"
 
-    client_name = case_data['client'] or 'Не указан'
+    # 5. Генерация PDF
+    unique_filename = os.path.join(CACHE_DIR, f"ticket_db_{case_id}_{datetime.now().strftime('%H%M%S')}.pdf")
+    
+    logger.info(f"Генерация PDF для заявки из БД (ID: {case_id})...")
+    
+    pdf_path = ticket_generator.create_multipage_label(
+        filename=unique_filename,
+        operator_name=operator_name,
+        phone=formatted_phone, 
+        time_str=formatted_time,
+        description=description
+    )
 
-    # 5. Выводим всё в консоль для проверки
-    logger.info(f"Номер заявки (case_number): {case_data['case_number']}")
-    logger.info(f"Сотрудник: {user_identifier}")
-    logger.info(f"Время: {formatted_time}")
-    logger.info(f"Телефон: {formatted_phone}")
-    logger.info(f"Клиент: {client_name}")
-    logger.info(f"Описание: {description}")
+    if not pdf_path or not os.path.exists(pdf_path):
+        logger.error(f"❌ Ошибка: PDF для заявки из БД (ID: {case_id}) не был создан.")
+        return
+
+    # 6. Отправка в канал
+    if channel_id:
+        caption_text = (
+            f"✅ <b>Новая заявка из БД (№ {case_data['case_number'] or case_id})</b>\n\n"
+            f"👤 Отправил(а): {operator_name}\n"
+            f"🕒 Время: {formatted_time}\n"
+            f"--- Детали заявки ---\n"
+            f"📞 Телефон: <code>{formatted_phone}</code>\n"
+            f"📝 Описание: {description}"
+        )
+
+        print_btn = InlineKeyboardButton(
+            text="🖨️ Print", 
+            callback_data="print_ticket"
+        )
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
+
+        try:
+            channel_doc = FSInputFile(pdf_path)
+            await bot.send_document(
+                chat_id=channel_id,
+                document=channel_doc,
+                caption=caption_text,
+                reply_markup=keyboard
+            )
+            logger.info(f"Успешно отправлено в канал {channel_id} (Заявка ID: {case_id})")
+        except Exception as e:
+            logger.error(f"Ошибка при отправке в канал {channel_id}: {e}")
+    else:
+        logger.info(f"PDF сгенерирован ({pdf_path}), но channel_id не указан. Отправка в канал пропущена.")
+
     logger.info(f"--- КОНЕЦ ОБРАБОТКИ ЗАЯВКИ (ID: {case_id}) ---")
 
 dp = Dispatcher()
