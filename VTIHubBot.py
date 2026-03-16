@@ -230,6 +230,10 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
 
     # 6. Отправка в канал
     if channel_id:
+        # --- НОВОЕ: Генерируем хештег ---
+        phone_hashtag = get_phone_hashtag(raw_phone_str)
+        hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
+
         caption_text = (
             f"✅ <b>Новая заявка из БД (№ {case_data['case_number'] or case_id})</b>\n\n"
             f"👤 Отправил(а): {operator_name}\n"
@@ -237,6 +241,7 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
             f"--- Детали заявки ---\n"
             f"📞 Телефон: <code>{formatted_phone}</code>\n"
             f"📝 Описание: {description}"
+            f"{hashtag_line}" # Добавляем хештег в конец сообщения
         )
 
         print_btn = InlineKeyboardButton(
