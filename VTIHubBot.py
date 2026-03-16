@@ -557,6 +557,7 @@ def get_phone_hashtag(phone_str: str) -> str:
     """
     Извлекает последние 4, 3 и 2 цифры из номера телефона для создания нескольких хештегов.
     Добавляет букву 't', так как Telegram не делает хештеги только из цифр кликабельными.
+    Разносит хештеги широкими отступами для удобного нажатия с телефона.
     """
     if not phone_str or phone_str == 'N/A':
         return "" # Если номера нет, хештеги не делаем
@@ -585,8 +586,8 @@ def get_phone_hashtag(phone_str: str) -> str:
     if len(digits_only) == 1:
         tags.append(f"#t{digits_only}")
 
-    # Объединяем все собранные теги в одну строку через пробел
-    return " ".join(tags)
+    # Соединяем теги широким пробелом и разделителем, чтобы увеличить зону клика
+    return "  |  ".join(tags)
 
 async def monitor_database(db_path: str, bot: Bot, channel_id: str = ""):
     """
