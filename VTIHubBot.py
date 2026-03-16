@@ -230,7 +230,7 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
 
     # 6. Отправка в канал
     if channel_id:
-        # --- НОВОЕ: Генерируем хештег ---
+        # Генерируем хештег
         phone_hashtag = get_phone_hashtag(raw_phone_str)
         hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
 
@@ -241,7 +241,8 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
             f"--- Детали заявки ---\n"
             f"📞 Телефон: <code>{formatted_phone}</code>\n"
             f"📝 Описание: {description}"
-            f"{hashtag_line}" # Добавляем хештег в конец сообщения
+            f"{hashtag_line}\n"
+            f"^^^^^^^^" # <-- Визуальный разделитель под чек для канала
         )
 
         print_btn = InlineKeyboardButton(
@@ -353,10 +354,11 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         )
         
         if pdf_path and os.path.exists(pdf_path):
-            # --- НОВОЕ: Генерируем хештег ---
+            # Генерируем хештег
             phone_hashtag = get_phone_hashtag(raw_phone)
             hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
 
+            # Базовый текст, который общий для всех
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
@@ -364,7 +366,7 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 f"--- Детали заявки ---\n"
                 f"📞 Телефон: <code>{formatted_phone}</code>\n"
                 f"📝 Описание: {description}"
-                f"{hashtag_line}" # Добавляем хештег в конец сообщения
+                f"{hashtag_line}"
             )
 
             print_btn = InlineKeyboardButton(
@@ -378,12 +380,15 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
 
             # --- 5. SEND TO CHANNEL ---
             if channel_id:
+                # Добавляем "отрывную" линию чека ТОЛЬКО для канала
+                channel_caption = caption_text + "\n^^^^^^^^" 
+                
                 try:
                     channel_doc = FSInputFile(pdf_path)
                     sent_msg = await bot.send_document(
                         chat_id=channel_id,
                         document=channel_doc,
-                        caption=caption_text,
+                        caption=channel_caption, # Отправляем текст с линией чека
                         reply_markup=keyboard
                     )
                     logger.info(f"Successfully sent ticket to channel {channel_id}")
@@ -398,7 +403,7 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
 
             # --- 6. SEND TO USER ---
-            user_caption = caption_text + channel_link
+            user_caption = caption_text + channel_link # Линию чека сюда НЕ добавляем
             
             user_doc = reusable_file_id if reusable_file_id else FSInputFile(pdf_path)
             
@@ -409,7 +414,6 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 disable_web_page_preview=True
             )
             
-            # НОВОЕ: Блок с os.remove(pdf_path) УДАЛЕН. Файл остается в кеше!
             logger.info(f"File {pdf_path} saved in cache.")
                 
         else:
