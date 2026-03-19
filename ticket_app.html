@@ -531,9 +531,64 @@
 				}
 			}
 
+			function renderHistory() {
+				const historyList = document.getElementById('historyList');
+				historyList.innerHTML = ''; // Очищаем текущий список перед отрисовкой
+
+				try {
+					const savedHistory = localStorage.getItem('ticketHistory');
+					if (!savedHistory) {
+						historyList.innerHTML = '<div class="empty-history">История пуста</div>';
+						return;
+					}
+
+					const history = JSON.parse(savedHistory);
+
+					if (history.length === 0) {
+						historyList.innerHTML = '<div class="empty-history">История пуста</div>';
+						return;
+					}
+
+					// Проходимся по каждой сохраненной заявке и создаем для нее карточку
+					history.forEach(function(ticket, index) {
+						const itemDiv = document.createElement('div');
+						itemDiv.className = 'history-item';
+						// Сохраняем индекс, чтобы на следующем шаге мы могли по клику найти нужную заявку
+						itemDiv.dataset.index = index; 
+
+						const dateDiv = document.createElement('div');
+						dateDiv.className = 'history-date';
+						dateDiv.textContent = ticket.date;
+
+						const textDiv = document.createElement('div');
+						textDiv.className = 'history-text';
+						textDiv.textContent = ticket.combinedDescription;
+
+						itemDiv.appendChild(dateDiv);
+						itemDiv.appendChild(textDiv);
+						
+						historyList.appendChild(itemDiv);
+					});
+
+				} catch (e) {
+					console.error("Ошибка при чтении истории:", e);
+					historyList.innerHTML = '<div class="empty-history">Ошибка загрузки истории</div>';
+				}
+			}
+
+			function openHistoryModal() {
+				renderHistory(); // Сначала достаем и рисуем список
+				document.getElementById('historyModal').classList.add('active'); // Затем показываем само окно
+			}
+
+			function closeHistoryModal() {
+				document.getElementById('historyModal').classList.remove('active'); // Прячем окно
+			}
+
 			// --- Event Listener Setup ---
 			// It's good practice to ensure the DOM is fully loaded before attaching listeners,
 			// but since this script is at the end of the body, elements should be available.
+			// --- Полностью обновленный блок слушателей событий ---
 			document.addEventListener('DOMContentLoaded', function() {
 				const cancelBtn = document.querySelector('.cancel-btn');
 				if (cancelBtn) {
@@ -547,8 +602,29 @@
 
 				const accessoryBtns = document.querySelectorAll('.accessory-btn');
 				accessoryBtns.forEach(button => {
-					button.addEventListener('click', addAccessory); // Pass the function reference
+					button.addEventListener('click', addAccessory);
 				});
+
+				// НОВОЕ: Слушатели для окна истории
+				const openHistoryBtn = document.getElementById('openHistoryBtn');
+				if (openHistoryBtn) {
+					openHistoryBtn.addEventListener('click', openHistoryModal);
+				}
+
+				const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+				if (closeHistoryBtn) {
+					closeHistoryBtn.addEventListener('click', closeHistoryModal);
+				}
+
+				// Закрытие окна при клике на темный фон вне самой карточки
+				const historyModal = document.getElementById('historyModal');
+				if (historyModal) {
+					historyModal.addEventListener('click', function(event) {
+						if (event.target === historyModal) {
+							closeHistoryModal();
+						}
+					});
+				}
 			});
 
 		</script>
