@@ -479,16 +479,16 @@
 					app_origin: 'ticket_app'
 				};
 
-				// --- НОВАЯ ЛОГИКА: Сохранение в историю (localStorage) ---
+				// --- ЛОГИКА: Сохранение в историю с проверкой на дубликаты ---
 				try {
 					let history = [];
 					const savedHistory = localStorage.getItem('ticketHistory');
 					if (savedHistory) {
-						history = JSON.parse(savedHistory); // Достаем старую историю, если она есть
+						history = JSON.parse(savedHistory);
 					}
 
 					const newTicket = {
-						id: Date.now(), // Уникальный идентификатор
+						id: Date.now(),
 						date: new Date().toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute:'2-digit'}),
 						phone: phone,
 						deviceModel: deviceModel,
@@ -497,18 +497,31 @@
 						combinedDescription: combinedDescription
 					};
 
-					history.unshift(newTicket); // Добавляем новую заявку в начало списка
-
-					// Ограничим историю 20 последними заявками
-					if (history.length > 20) {
-						history.pop();
+					// Проверяем, есть ли уже записи, и совпадает ли новая с самой последней
+					let isDuplicate = false;
+					if (history.length > 0) {
+						const lastTicket = history[0];
+						// Сравниваем основные поля
+						if (lastTicket.phone === newTicket.phone &&
+							lastTicket.deviceModel === newTicket.deviceModel &&
+							lastTicket.issueDescription === newTicket.issueDescription &&
+							lastTicket.accessories === newTicket.accessories) {
+							isDuplicate = true; // Нашли 100% совпадение с последней заявкой
+						}
 					}
 
-					localStorage.setItem('ticketHistory', JSON.stringify(history)); // Сохраняем обратно в память
+					// Сохраняем только если это не дубликат последней заявки
+					if (!isDuplicate) {
+						history.unshift(newTicket);
+
+						if (history.length > 20) {
+							history.pop();
+						}
+
+						localStorage.setItem('ticketHistory', JSON.stringify(history));
+					}
 				} catch (e) {
 					console.error("Ошибка при сохранении истории:", e);
-					// Если сохранить не вышло (например, отключены cookies/storage), просто игнорируем,
-					// чтобы не прерывать саму отправку заявки в Telegram
 				}
 				// --------------------------------------------------------
 
