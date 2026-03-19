@@ -47,11 +47,32 @@
 				box-sizing: border-box;
 			}
 
+			.header-wrap {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				margin-bottom: 20px;
+			}
+
 			.header {
 				font-size: 20px;
 				font-weight: 500;
-				margin-bottom: 20px;
 				color: var(--tg-theme-text-color, var(--original-text-color));
+			}
+
+			.history-toggle-btn {
+				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border-radius: 8px;
+				padding: 6px 12px;
+				font-size: 14px;
+				cursor: pointer;
+				transition: all 0.2s;
+			}
+
+			.history-toggle-btn:hover {
+				opacity: 0.8;
 			}
 
 			.input-group {
@@ -154,9 +175,6 @@
 				cursor: pointer;
 				transition: opacity 0.2s;
 			}
-			/* If accessory buttons shouldn't flex like main buttons, ensure their selector is more specific or they don't fall under this general button rule if it's too broad. */
-			/* The current .accessory-buttons button.accessory-btn is more specific for most properties except flex. */
-
 
 			.form-actions button:active { /* Specific to buttons in .form-actions for :active */
 				opacity: 0.7;
@@ -190,7 +208,10 @@
 	</head>
 	<body>
 		<div class="ticket-container">
-			<div class="header">➕ Новая Заявка</div>
+			<div class="header-wrap">
+				<div class="header">➕ Новая Заявка</div>
+				<button type="button" class="history-toggle-btn" id="openHistoryBtn">🕒 История</button>
+			</div>
 
 			<div class="input-group">
 				<label for="phone">📞 Телефон Клиента</label>
