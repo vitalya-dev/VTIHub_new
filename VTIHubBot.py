@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub/ticket_app.html"
+WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub_new/ticket_app.html"
 
 CACHE_DIR = "pdf_cache"
 os.makedirs(CACHE_DIR, exist_ok=True) # Создаст папку, если её нет
