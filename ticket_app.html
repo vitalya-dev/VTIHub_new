@@ -555,14 +555,15 @@
 						itemDiv.className = 'history-item';
 						itemDiv.dataset.index = index; 
 
-						// НОВОЕ: добавляем обработчик клика для загрузки данных в форму
+						// Обработчик клика для загрузки данных в форму
 						itemDiv.addEventListener('click', function() {
 							loadTicketFromHistory(index);
 						});
 
 						const dateDiv = document.createElement('div');
 						dateDiv.className = 'history-date';
-						dateDiv.textContent = ticket.date;
+						// ИЗМЕНЕНИЕ ЗДЕСЬ: Добавили номер телефона рядом с датой
+						dateDiv.textContent = `${ticket.date} • 📞 ${ticket.phone}`;
 
 						const textDiv = document.createElement('div');
 						textDiv.className = 'history-text';
