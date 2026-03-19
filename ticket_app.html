@@ -431,13 +431,13 @@
 				const phoneInput = document.getElementById('phone');
 				const deviceModelInput = document.getElementById('deviceModel');
 				const issueDescriptionInput = document.getElementById('issueDescription');
-				const accessoriesInput = document.getElementById('accessories'); // Get the accessories input element
+				const accessoriesInput = document.getElementById('accessories');
 				const errorMessage = document.getElementById('error-message');
 
 				const phone = phoneInput.value;
 				const deviceModel = deviceModelInput.value.trim();
 				const issueDescription = issueDescriptionInput.value.trim();
-				const accessories = accessoriesInput.value.trim(); // Get the trimmed value
+				const accessories = accessoriesInput.value.trim();
 
 				errorMessage.textContent = '';
 
@@ -467,10 +467,9 @@
 
 				let combinedDescription = `${deviceModel}. ${issueDescription}`;
 
-				// Updated logic for accessories:
-				if (accessories) { // If the user entered something or used buttons
+				if (accessories) {
 					combinedDescription += `. ${accessories}`;
-				} else { // If the accessories field is empty (placeholder was showing)
+				} else {
 					combinedDescription += `. Без комплектации`;
 				}
 
@@ -479,6 +478,39 @@
 					description: combinedDescription,
 					app_origin: 'ticket_app'
 				};
+
+				// --- НОВАЯ ЛОГИКА: Сохранение в историю (localStorage) ---
+				try {
+					let history = [];
+					const savedHistory = localStorage.getItem('ticketHistory');
+					if (savedHistory) {
+						history = JSON.parse(savedHistory); // Достаем старую историю, если она есть
+					}
+
+					const newTicket = {
+						id: Date.now(), // Уникальный идентификатор
+						date: new Date().toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute:'2-digit'}),
+						phone: phone,
+						deviceModel: deviceModel,
+						issueDescription: issueDescription,
+						accessories: accessories,
+						combinedDescription: combinedDescription
+					};
+
+					history.unshift(newTicket); // Добавляем новую заявку в начало списка
+
+					// Ограничим историю 20 последними заявками
+					if (history.length > 20) {
+						history.pop();
+					}
+
+					localStorage.setItem('ticketHistory', JSON.stringify(history)); // Сохраняем обратно в память
+				} catch (e) {
+					console.error("Ошибка при сохранении истории:", e);
+					// Если сохранить не вышло (например, отключены cookies/storage), просто игнорируем,
+					// чтобы не прерывать саму отправку заявки в Telegram
+				}
+				// --------------------------------------------------------
 
 				Telegram.WebApp.sendData(JSON.stringify(data));
 				Telegram.WebApp.close();
