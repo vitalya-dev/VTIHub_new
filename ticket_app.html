@@ -553,8 +553,12 @@
 					history.forEach(function(ticket, index) {
 						const itemDiv = document.createElement('div');
 						itemDiv.className = 'history-item';
-						// Сохраняем индекс, чтобы на следующем шаге мы могли по клику найти нужную заявку
 						itemDiv.dataset.index = index; 
+
+						// НОВОЕ: добавляем обработчик клика для загрузки данных в форму
+						itemDiv.addEventListener('click', function() {
+							loadTicketFromHistory(index);
+						});
 
 						const dateDiv = document.createElement('div');
 						dateDiv.className = 'history-date';
@@ -585,9 +589,41 @@
 				document.getElementById('historyModal').classList.remove('active'); // Прячем окно
 			}
 
+			function loadTicketFromHistory(index) {
+				try {
+					const savedHistory = localStorage.getItem('ticketHistory');
+					if (!savedHistory) return;
+
+					const history = JSON.parse(savedHistory);
+					const ticket = history[index];
+
+					if (ticket) {
+						// Подставляем сохраненные значения обратно в поля ввода
+						document.getElementById('phone').value = ticket.phone || '';
+						document.getElementById('deviceModel').value = ticket.deviceModel || '';
+						document.getElementById('issueDescription').value = ticket.issueDescription || '';
+						document.getElementById('accessories').value = ticket.accessories || '';
+
+						// Закрываем модальное окно после выбора заявки
+						closeHistoryModal();
+					}
+				} catch (e) {
+					console.error("Ошибка при загрузке заявки из истории:", e);
+				}
+			}
+
+			function clearHistory() {
+				// Спрашиваем подтверждение перед удалением (чтобы случайно не стереть)
+				if (confirm('Вы уверены, что хотите очистить историю заявок?')) {
+					localStorage.removeItem('ticketHistory'); // Удаляем из памяти
+					renderHistory(); // Сразу перерисовываем интерфейс (покажет "История пуста")
+				}
+			}
+
 			// --- Event Listener Setup ---
 			// It's good practice to ensure the DOM is fully loaded before attaching listeners,
 			// but since this script is at the end of the body, elements should be available.
+			// --- Полностью обновленный блок слушателей событий ---
 			// --- Полностью обновленный блок слушателей событий ---
 			document.addEventListener('DOMContentLoaded', function() {
 				const cancelBtn = document.querySelector('.cancel-btn');
@@ -605,7 +641,6 @@
 					button.addEventListener('click', addAccessory);
 				});
 
-				// НОВОЕ: Слушатели для окна истории
 				const openHistoryBtn = document.getElementById('openHistoryBtn');
 				if (openHistoryBtn) {
 					openHistoryBtn.addEventListener('click', openHistoryModal);
@@ -616,7 +651,6 @@
 					closeHistoryBtn.addEventListener('click', closeHistoryModal);
 				}
 
-				// Закрытие окна при клике на темный фон вне самой карточки
 				const historyModal = document.getElementById('historyModal');
 				if (historyModal) {
 					historyModal.addEventListener('click', function(event) {
@@ -624,6 +658,12 @@
 							closeHistoryModal();
 						}
 					});
+				}
+
+				// НОВОЕ: Слушатель для кнопки очистки истории
+				const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+				if (clearHistoryBtn) {
+					clearHistoryBtn.addEventListener('click', clearHistory);
 				}
 			});
 
