@@ -52,14 +52,14 @@
 				justify-content: space-between;
 				align-items: center;
 				margin-bottom: 20px;
-				gap: 15px; /* Добавили отступ между заголовком и кнопкой */
+				gap: 15px;
 			}
 
 			.header {
 				font-size: 20px;
 				font-weight: 500;
 				color: var(--tg-theme-text-color, var(--original-text-color));
-				white-space: nowrap; /* Запретили тексту сжиматься */
+				white-space: nowrap;
 			}
 
 			.history-toggle-btn {
@@ -205,6 +205,123 @@
 				text-align: center;
 			}
 
+			/* --- СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ИСТОРИИ --- */
+			.modal-overlay {
+				display: none; /* Скрыто по умолчанию */
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.5);
+				z-index: 1000;
+				justify-content: center;
+				align-items: center;
+				padding: 20px;
+				box-sizing: border-box;
+				backdrop-filter: blur(2px);
+			}
+
+			.modal-overlay.active {
+				display: flex; /* Показываем, когда есть класс active */
+			}
+
+			.modal-content {
+				background: var(--tg-theme-secondary-bg-color, var(--original-white));
+				border-radius: 12px;
+				width: 100%;
+				max-width: 400px;
+				max-height: 85vh;
+				display: flex;
+				flex-direction: column;
+				box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+				overflow: hidden;
+			}
+
+			.modal-header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 15px 20px;
+				border-bottom: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+			}
+
+			.modal-header h3 {
+				margin: 0;
+				font-size: 18px;
+				color: var(--tg-theme-text-color, var(--original-text-color));
+			}
+
+			.close-modal-btn {
+				background: none;
+				border: none;
+				font-size: 20px;
+				color: var(--tg-theme-hint-color, var(--original-label-color));
+				cursor: pointer;
+				padding: 0;
+				flex: none;
+				width: auto;
+			}
+
+			.modal-body {
+				padding: 20px;
+				overflow-y: auto;
+				flex-grow: 1;
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+			}
+
+			.history-item {
+				background-color: var(--tg-theme-bg-color, var(--original-background-color));
+				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border-radius: 8px;
+				padding: 12px;
+				cursor: pointer;
+				transition: border-color 0.2s;
+			}
+
+			.history-item:hover {
+				border-color: var(--tg-theme-button-color, var(--original-primary-color));
+			}
+
+			.history-date {
+				font-size: 12px;
+				color: var(--tg-theme-hint-color, var(--original-label-color));
+				margin-bottom: 4px;
+			}
+
+			.history-text {
+				font-size: 14px;
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+
+			.empty-history {
+				text-align: center;
+				color: var(--tg-theme-hint-color, var(--original-label-color));
+				padding: 20px 0;
+			}
+
+			.modal-footer {
+				padding: 15px 20px;
+				border-top: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+			}
+
+			.clear-history-btn {
+				background-color: transparent;
+				color: var(--tg-theme-destructive-text-color, var(--original-destructive-color));
+				border: 1px solid var(--tg-theme-destructive-text-color, var(--original-destructive-color));
+				width: 100%;
+				flex: none;
+			}
+
+			.clear-history-btn:hover {
+				background-color: rgba(255, 0, 0, 0.05);
+			}
+
 		</style>
 	</head>
 	<body>
@@ -216,67 +333,51 @@
 
 			<div class="input-group">
 				<label for="phone">📞 Телефон Клиента</label>
-				<input
-						type="tel"
-						id="phone"
-						inputmode="tel"
-						placeholder="Введите номер телефона"
-						enterkeyhint="next"
-						aria-label="Телефон клиента"
-						>
+				<input type="tel" id="phone" inputmode="tel" placeholder="Введите номер телефона" enterkeyhint="next" aria-label="Телефон клиента">
 			</div>
 
-				<div class="input-group">
-					<label for="deviceModel">⚙️ Модель Техники</label>
-					<input
-							type="text"
-							id="deviceModel"
-							placeholder="Например: Lenovo IdeaPad 5"
-							inputmode="text"
-							enterkeyhint="next"
-							autocapitalize="sentences"
-							aria-label="Модель техники"
-							>
+			<div class="input-group">
+				<label for="deviceModel">⚙️ Модель Техники</label>
+				<input type="text" id="deviceModel" placeholder="Например: Lenovo IdeaPad 5" inputmode="text" enterkeyhint="next" autocapitalize="sentences" aria-label="Модель техники">
+			</div>
+
+			<div class="input-group">
+				<label for="issueDescription">🛠️ Характер Неисправности</label>
+				<textarea id="issueDescription" placeholder="Например: Не заряжается, разбит экран" inputmode="text" enterkeyhint="next" autocapitalize="sentences" spellcheck="true" data-gramm="false" aria-label="Характер неисправности"></textarea>
+			</div>
+
+			<div class="input-group">
+				<label for="accessories">🔌 Комплектация</label>
+				<input type="text" id="accessories" placeholder="Без комплектации" inputmode="text" enterkeyhint="done" autocapitalize="sentences" aria-label="Комплектация">
+				<div class="accessory-buttons"> 
+					<button type="button" class="accessory-btn" data-accessory="БП">+БП</button>
+					<button type="button" class="accessory-btn" data-accessory="Сумка">+Сумка</button>
+					<button type="button" class="accessory-btn" data-accessory="Кабель">+Кабель</button>
+					<button type="button" class="accessory-btn" data-accessory="Мышь">+Мышь</button>
 				</div>
+			</div>
 
-				<div class="input-group">
-					<label for="issueDescription">🛠️ Характер Неисправности</label>
-					<textarea
-							id="issueDescription"
-							placeholder="Например: Не заряжается, разбит экран"
-							inputmode="text"
-							enterkeyhint="next"
-							autocapitalize="sentences"
-							spellcheck="true"
-							data-gramm="false"
-							aria-label="Характер неисправности"
-							></textarea> </div>
+			<div class="form-actions">
+				<button type="button" class="cancel-btn" aria-label="Отмена">Отмена</button>
+				<button type="button" class="send-btn" aria-label="Отправить">Отправить</button>
+			</div>
 
-				<div class="input-group">
-					<label for="accessories">🔌 Комплектация</label>
-					<input
-						type="text"
-						id="accessories"
-						placeholder="Без комплектации"
-						inputmode="text"
-						enterkeyhint="done"
-						autocapitalize="sentences"
-						aria-label="Комплектация"
-					>
-					<div class="accessory-buttons"> 
-						<button type="button" class="accessory-btn" data-accessory="БП">+БП</button>
-						<button type="button" class="accessory-btn" data-accessory="Сумка">+Сумка</button>
-						<button type="button" class="accessory-btn" data-accessory="Кабель">+Кабель</button>
-						<button type="button" class="accessory-btn" data-accessory="Мышь">+Мышь</button>
-						</div>
+			<div id="error-message" class="error-message"></div>
+		</div>
+
+		<div id="historyModal" class="modal-overlay">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>🕒 История заявок</h3>
+					<button type="button" class="close-modal-btn" id="closeHistoryBtn">✕</button>
 				</div>
-
-				<div class="form-actions">
-					<button type="button" class="cancel-btn" aria-label="Отмена">Отмена</button>
-					<button type="button" class="send-btn" aria-label="Отправить">Отправить</button>
+				<div class="modal-body" id="historyList">
+					<div class="empty-history">История пуста</div>
 				</div>
-
-				<div id="error-message" class="error-message"></div>
+				<div class="modal-footer">
+					<button type="button" class="clear-history-btn" id="clearHistoryBtn">Очистить историю</button>
+				</div>
+			</div>
 		</div>
 
 		<script src="https://telegram.org/js/telegram-web-app.js"></script>
