@@ -435,108 +435,89 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
 
 
 
-@dp.callback_query(F.data == "print_ticket")
+@dp.callback_query(F.data.startswith("print_ticket:"))
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: str = ""):
     """
-    Обрабатывает нажатие на кнопку печати.
-    Ищет PDF в локальном кеше. Если нет - скачивает. Отправляет в PDFXCview.
+    Обрабатывает нажатие на кнопки печати (1, 2 или 3 копии).
+    Безопасно извлекает количество из callback_data.
     """
-    user_id = callback.from_user.id
+    # 1. Защита от пустого callback.data (убирает предупреждение редактора)
+    if not callback.data:
+        logger.warning("Получен CallbackQuery без данных (data is None).")
+        return
 
-    # --- НОВОЕ: Безопасный ответ на нажатие ---
+    user_id = callback.from_user.id
+    
+    # 2. Извлекаем количество копий (например, "print_ticket:2" -> 2)
     try:
-        await callback.answer("Подготовка к печати... 🖨️")
+        parts = callback.data.split(":")
+        copies = int(parts[1]) if len(parts) > 1 else 1
+    except (IndexError, ValueError):
+        copies = 1 
+
+    # 3. Ответ на нажатие
+    try:
+        await callback.answer(f"Печатаю копий: {copies}... 🖨️")
     except TelegramBadRequest:
-        logger.warning(f"Клик от {user_id} устарел, пропускаем всплывающее уведомление.")
+        logger.warning(f"Клик от {user_id} устарел.")
     except Exception as e:
         logger.error(f"Не удалось ответить на callback: {e}")
-    # ------------------------------------------
 
+    # 4. Проверка сообщения и документа
     if not callback.message or not isinstance(callback.message, Message):
-        logger.warning(f"Print callback from user {user_id}: Message is missing.")
-        try:
-            await bot.send_message(user_id, "❌ Исходное сообщение недоступно.")
-        except Exception:
-            pass
         return
 
     document = callback.message.document
     if not document:
-        await bot.send_message(user_id, "❌ Документ не найден.")
+        await bot.send_message(user_id, "❌ Документ не найден в сообщении.")
         return
 
     if not printer_name:
-        await bot.send_message(user_id, "❌ Внимание: Принтер не настроен. Запустите бота с флагом --print.")
+        await bot.send_message(user_id, "❌ Ошибка: Принтер не настроен на сервере.")
         return
 
-    try:
-        temp_msg = await bot.send_message(user_id, "🖨️")
-    except Exception as e:
-        logger.error(f"Не удалось отправить сообщение пользователю {user_id}: {e}")
-        return
-
-    # --- НОВОЕ: ЛОГИКА КЕШИРОВАНИЯ ---
-    # Получаем оригинальное имя файла (или генерируем запасное из file_id)
-    file_name = document.file_name or f"ticket_recovered_{document.file_id}.pdf"
-    
-    # Строим полный путь к файлу в нашей папке кеша
+    # 5. Процесс печати
+    temp_msg = await bot.send_message(user_id, "⌛")
+    file_name = document.file_name or f"ticket_{document.file_id}.pdf"
     cached_pdf_path = os.path.abspath(os.path.join(CACHE_DIR, file_name))
     
-    PRINT_TIMEOUT = 10.0 
+    PRINT_TIMEOUT = 15.0 
 
     try:
-        # Проверяем, есть ли файл на диске
         if not os.path.exists(cached_pdf_path):
-            logger.info(f"Файл {file_name} не найден в кеше. Скачиваем из Telegram...")
             await bot.download(document, destination=cached_pdf_path)
-        else:
-            logger.info(f"Файл {file_name} найден в кеше! Пропускаем скачивание.")
+            logger.info(f"Файл {file_name} скачан.")
 
-        # Запускаем PDFXCview асинхронно
-        process = await asyncio.create_subprocess_exec(
-            "PDFXCview",
-            "/printto:pages=1", 
-            printer_name, 
-            cached_pdf_path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        
-        try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
-            if stdout:
-                # Декодируем сырые байты в строку. errors='replace' защитит от падения, если кодировка системная (например, Windows CP866)
-                program_output = stdout.decode('utf-8', errors='replace').strip()
-                if program_output:
-                    logger.info(f"PDFXCview stdout:\n{program_output}")
-            if process.returncode == 0:
-                logger.info(f"Успешно отправлено на печать пользователем {user_id}.")
-            else:
-                error_msg = stderr.decode('utf-8', errors='ignore') or "Неизвестная ошибка программы"
-                logger.error(f"Ошибка печати (код {process.returncode}): {error_msg}")
-                await bot.send_message(user_id, "❌ Произошла ошибка при отправке на принтер.")
-                
-        except asyncio.TimeoutError:
-            logger.error(f"Процесс печати завис (превышен таймаут {PRINT_TIMEOUT}с). Убиваем процесс...")
-            try:
-                process.kill()
-                await process.communicate()
-            except ProcessLookupError:
-                pass 
+        for i in range(copies):
+            logger.info(f"Печать копии {i+1}/{copies}: {file_name}")
             
-            await bot.send_message(user_id, f"❌ Принтер или программа не отвечают (таймаут {PRINT_TIMEOUT} сек).")
+            process = await asyncio.create_subprocess_exec(
+                "PDFXCview",
+                "/printto:pages=1", 
+                printer_name, 
+                cached_pdf_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            
+            try:
+                await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
+                if copies > 1 and i < copies - 1:
+                    await asyncio.sleep(1) # Пауза между заданиями
+            except asyncio.TimeoutError:
+                try:
+                    process.kill()
+                except:
+                    pass
 
     except Exception as e:
-        logger.error(f"Непредвиденная ошибка при подготовке к печати: {e}")
-        await bot.send_message(user_id, "❌ Произошла непредвиденная ошибка.")
+        logger.error(f"Ошибка печати: {e}")
+        await bot.send_message(user_id, "❌ Произошла ошибка при отправке на печать.")
     finally:
-        # НОВОЕ: Мы больше НЕ удаляем pdf-файл (os.remove убран)
-        # Удаляем только статусное сообщение с эмодзи
         try:
             await temp_msg.delete()
-        except Exception:
+        except:
             pass
-
 import re
 
 def format_phone_number(phone_str: str) -> str:
