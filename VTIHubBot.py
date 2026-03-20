@@ -230,7 +230,6 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
 
     # 6. Отправка в канал
     if channel_id:
-        # Генерируем хештег
         phone_hashtag = get_phone_hashtag(raw_phone_str)
         hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
 
@@ -242,12 +241,12 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
             f"📞 Телефон: <code>{formatted_phone}</code>\n"
             f"📝 Описание: {description}"
             f"{hashtag_line}\n"
-            f"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" # <-- Визуальный разделитель под чек для канала
+            f"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
         )
 
-        # ОБНОВЛЕННАЯ КЛАВИАТУРА: Три кнопки в ряд
+        # ОБНОВЛЕННЫЕ КНОПКИ: x1, x2, x3
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🖨️ Print", callback_data="print_ticket:1"),
+            InlineKeyboardButton(text="🖨️ x1", callback_data="print_ticket:1"),
             InlineKeyboardButton(text="🖨️ x2", callback_data="print_ticket:2"),
             InlineKeyboardButton(text="🖨️ x3", callback_data="print_ticket:3")
         ]])
@@ -264,7 +263,7 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
         except Exception as e:
             logger.error(f"Ошибка при отправке в канал {channel_id}: {e}")
     else:
-        logger.info(f"PDF сгенерирован ({pdf_path}), но channel_id не указан. Отправка в канал пропущена.")
+        logger.info(f"PDF сгенерирован ({pdf_path}), но channel_id не указан.")
 
     logger.info(f"--- КОНЕЦ ОБРАБОТКИ ЗАЯВКИ (ID: {case_id}) ---")
 
@@ -308,22 +307,18 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
     Catches and processes the JSON data sent from the Web App.
     Generates a PDF ticket, sends it to the channel, and sends it back to the user.
     """
-    # 1. Delete the gray system message "Data from the Web App..."
     try:
         await message.delete()
     except Exception as e:
         logger.warning(f"Failed to delete web_app_data system message: {e}")
         
-    # 2. Defensive check
     if not message.web_app_data or not message.from_user:
-        logger.warning("Received a web app message, but web_app_data or from_user is None.")
-        await message.answer("❌ Ошибка: не удалось получить данные формы или информацию о пользователе.")
+        await message.answer("❌ Ошибка: не удалось получить данные формы.")
         return
 
     status_msg = await message.answer("<i>Обрабатываю данные и генерирую тикет... 🖨️</i>")
 
     try:
-        # 3. Parse data
         raw_data = message.web_app_data.data
         parsed_data = json.loads(raw_data)
         
@@ -332,20 +327,13 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         description = parsed_data.get('description', 'Нет описания')
         
         user = message.from_user
-        if user.username:
-            operator_name = f"@{user.username}"
-        else:
-            operator_name = user.first_name or "Неизвестный оператор"
-            
+        operator_name = f"@{user.username}" if user.username else (user.first_name or "Неизвестный оператор")
 
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
-        
-        # НОВОЕ: Добавляем путь к папке кеша в имя файла
         unique_filename = os.path.join(CACHE_DIR, f"ticket_{user.id}_{datetime.now().strftime('%H%M%S')}.pdf")
         
         logger.info(f"Generating PDF for {operator_name}...")
         
-        # 4. Generate PDF
         pdf_path = ticket_generator.create_multipage_label(
             filename=unique_filename,
             operator_name=operator_name,
@@ -355,11 +343,9 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
         )
         
         if pdf_path and os.path.exists(pdf_path):
-            # Генерируем хештег
             phone_hashtag = get_phone_hashtag(raw_phone)
             hashtag_line = f"\n\n{phone_hashtag}" if phone_hashtag else ""
 
-            # Базовый текст, который общий для всех
             caption_text = (
                 f"✅ <b>Заявка создана!</b>\n\n"
                 f"👤 Отправил(а): {operator_name}\n"
@@ -370,9 +356,9 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 f"{hashtag_line}"
             )
 
-            # ОБНОВЛЕННАЯ КЛАВИАТУРА: Три кнопки в ряд
+            # ОБНОВЛЕННЫЕ КНОПКИ: x1, x2, x3
             keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="🖨️ Print", callback_data="print_ticket:1"),
+                InlineKeyboardButton(text="🖨️ x1", callback_data="print_ticket:1"),
                 InlineKeyboardButton(text="🖨️ x2", callback_data="print_ticket:2"),
                 InlineKeyboardButton(text="🖨️ x3", callback_data="print_ticket:3")
             ]])
@@ -380,33 +366,25 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
             reusable_file_id = None 
             channel_link = ""
 
-            # --- 5. SEND TO CHANNEL ---
             if channel_id:
-                # Добавляем "отрывную" линию чека ТОЛЬКО для канала
                 channel_caption = caption_text + "\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" 
-                
                 try:
                     channel_doc = FSInputFile(pdf_path)
                     sent_msg = await bot.send_document(
                         chat_id=channel_id,
                         document=channel_doc,
-                        caption=channel_caption, # Отправляем текст с линией чека
+                        caption=channel_caption,
                         reply_markup=keyboard
                     )
-                    logger.info(f"Successfully sent ticket to channel {channel_id}")
-                    
                     if sent_msg.document:
                         reusable_file_id = sent_msg.document.file_id
-                    
                     if str(channel_id).startswith("-100"):
                         clean_channel_id = str(channel_id)[4:]
                         channel_link = f"\n\n🔗 <a href='https://t.me/c/{clean_channel_id}/{sent_msg.message_id}'>Посмотреть вашу заявку в канале</a>"
                 except Exception as e:
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
 
-            # --- 6. SEND TO USER ---
-            user_caption = caption_text + channel_link # Линию чека сюда НЕ добавляем
-            
+            user_caption = caption_text + channel_link
             user_doc = reusable_file_id if reusable_file_id else FSInputFile(pdf_path)
             
             await message.answer_document(
@@ -415,18 +393,12 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 reply_markup=keyboard,
                 disable_web_page_preview=True
             )
-            
-            logger.info(f"File {pdf_path} saved in cache.")
-                
         else:
-            await message.answer("❌ Произошла ошибка при создании PDF-документа.")
+            await message.answer("❌ Ошибка при создании PDF.")
 
-    except json.JSONDecodeError:
-        logger.error("Failed to decode JSON from Web App")
-        await message.answer("❌ Ошибка при чтении данных с формы.")
     except Exception as e:
-        logger.error(f"Unexpected error in web_app_data_handler: {e}")
-        await message.answer("❌ Произошла непредвиденная ошибка при обработке данных.")
+        logger.error(f"Error in web_app_data_handler: {e}")
+        await message.answer("❌ Произошла ошибка при обработке.")
     finally:
         try:
             await status_msg.delete()
