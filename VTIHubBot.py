@@ -245,11 +245,12 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
             f"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" # <-- Визуальный разделитель под чек для канала
         )
 
-        print_btn = InlineKeyboardButton(
-            text="🖨️ Print", 
-            callback_data="print_ticket"
-        )
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
+        # ОБНОВЛЕННАЯ КЛАВИАТУРА: Три кнопки в ряд
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🖨️ Print", callback_data="print_ticket:1"),
+            InlineKeyboardButton(text="🖨️ x2", callback_data="print_ticket:2"),
+            InlineKeyboardButton(text="🖨️ x3", callback_data="print_ticket:3")
+        ]])
 
         try:
             channel_doc = FSInputFile(pdf_path)
@@ -369,11 +370,12 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                 f"{hashtag_line}"
             )
 
-            print_btn = InlineKeyboardButton(
-                text="🖨️ Print", 
-                callback_data="print_ticket"
-            )
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[[print_btn]])
+            # ОБНОВЛЕННАЯ КЛАВИАТУРА: Три кнопки в ряд
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="🖨️ Print", callback_data="print_ticket:1"),
+                InlineKeyboardButton(text="🖨️ x2", callback_data="print_ticket:2"),
+                InlineKeyboardButton(text="🖨️ x3", callback_data="print_ticket:3")
+            ]])
 
             reusable_file_id = None 
             channel_link = ""
