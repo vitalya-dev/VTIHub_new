@@ -711,39 +711,47 @@ async def main():
     
     args = parser.parse_args()
 
-    # Пауза 5 секунд перед началом работы
-    logger.info("Ожидание инициализации системы (5 секунд)...")
+    # 1. Пауза перед стартом для инициализации сети и дисков
+    logger.info("--- ЗАПУСК СИСТЕМЫ ---")
+    logger.info("Ожидание 5 секунд для готовности сетевых ресурсов...")
     await asyncio.sleep(5)
 
-    # Инициализируем бота с дефолтным парсингом HTML
+    # 2. Проверка критических ресурсов
+    if args.db_path:
+        if not os.path.exists(args.db_path):
+            logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Файл базы данных не найден по пути: {args.db_path}")
+            logger.error("Проверьте подключение сетевого диска (Samba).")
+            # Бросаем ошибку, чтобы сработал блок удержания консоли в __main__
+            raise FileNotFoundError(f"База данных отсутствует: {args.db_path}")
+        else:
+            logger.info(f"✅ База данных найдена: {args.db_path}")
+
+    # 3. Инициализация бота
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
-    # Прокидываем все настройки в диспетчер, чтобы они были доступны в хэндлерах и при старте
     dp["printer_name"] = args.printer_name
     dp["channel_id"] = args.channel_id
     dp["db_path"] = args.db_path
     
-    logger.info("Starting bot...")
+    logger.info("Бот инициализирован. Запуск поллинга...")
     
-    # Красиво выводим в консоль, какие модули у нас сейчас активны
     if args.printer_name:
-        logger.info(f"🖨️ Printer configured: {args.printer_name}")
+        logger.info(f"🖨️ Принтер: {args.printer_name}")
     if args.channel_id:
-        logger.info(f"📢 Channel configured: {args.channel_id}")
-    if args.db_path:
-        logger.info(f"🗄️ Database configured: {args.db_path}")
+        logger.info(f"📢 Канал для логов: {args.channel_id}")
 
     try:
-        # Пропускаем старые апдейты, чтобы бот не начал отвечать на кнопки, нажатые пока он спал
+        # Очистка очереди обновлений
         await bot.delete_webhook(drop_pending_updates=True)
-        # Запускаем поллинг (и попутно триггерим @dp.startup)
+        # Запуск основного цикла
         await dp.start_polling(bot)
     except Exception as e:
-        logger.error(f"❌ An error occurred during polling: {e}")
-        # Пробрасываем ошибку дальше, чтобы блок в if __name__ == '__main__' её поймал
+        logger.error(f"❌ Произошла ошибка во время работы: {e}")
         raise e
     finally:
-        logger.info("🛑 Bot has been stopped.")
+        # Чистое закрытие сессии бота
+        await bot.session.close()
+        logger.info("🛑 Сессия бота закрыта. Работа завершена.")
 
 if __name__ == '__main__':
     try:
