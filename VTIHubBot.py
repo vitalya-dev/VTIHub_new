@@ -711,65 +711,60 @@ async def main():
     
     args = parser.parse_args()
 
-    # 1. Начальная пауза для «прогрева» системы
+    # 1. Начальная пауза для первичной инициализации системы
     logger.info("--- ЗАПУСК СИСТЕМЫ ---")
     logger.info("Ожидание 5 секунд для первичной инициализации...")
     await asyncio.sleep(5)
 
-    # 2. Проверка базы данных перед запуском сети
-    if args.db_path:
-        if not os.path.exists(args.db_path):
-            logger.error(f"❌ Критическая ошибка: База данных не найдена по пути {args.db_path}")
-            raise FileNotFoundError(f"Файл БД отсутствует: {args.db_path}")
-        logger.info(f"✅ Файл базы данных обнаружен.")
-
-    # 3. Настройка параметров подключения
+    # 2. Настройка параметров бота
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp["printer_name"] = args.printer_name
     dp["channel_id"] = args.channel_id
     dp["db_path"] = args.db_path
 
     max_retries = 10
-    base_delay = 5  # Начальная задержка в секундах
-    
+    base_delay = 5
     success = False
 
     for attempt in range(1, max_retries + 1):
         try:
-            logger.info(f"Попытка подключения к Telegram #{attempt}...")
-            
-            # Проверяем связь, запрашивая информацию о боте
+            logger.info(f"Попытка инициализации ресурсов #{attempt}...")
+
+            # --- ПРОВЕРКА БАЗЫ ДАННЫХ ВНУТРИ ЦИКЛА ---
+            if args.db_path:
+                if not os.path.exists(args.db_path):
+                    # Бросаем ошибку, чтобы сработал блок 'except' и пошел повтор
+                    raise FileNotFoundError(f"База данных не найдена по пути: {args.db_path}")
+                logger.info(f"✅ База данных обнаружена.")
+
+            # --- ПРОВЕРКА СЕТИ И ТЕЛЕГРАМА ---
             me = await bot.get_me()
-            logger.info(f"✅ Соединение установлено! Бот @{me.username} готов к работе.")
+            logger.info(f"✅ Соединение установлено! Бот @{me.username} готов.")
             
-            # Очищаем старые обновления
             await bot.delete_webhook(drop_pending_updates=True)
             
             success = True
-            # Запускаем бесконечный цикл обработки сообщений
+            # Запускаем поллинг
             await dp.start_polling(bot)
-            break # Если поллинг завершился штатно
+            break 
             
         except Exception as e:
-            # Рассчитываем прогрессивную задержку (5, 10, 20, 40... но не более 60 сек)
             current_delay = min(base_delay * (2 ** (attempt - 1)), 60)
-            
-            logger.warning(f"⚠️ Ошибка сети или API (попытка {attempt}): {e}")
+            logger.warning(f"⚠️ Ресурс не готов (попытка {attempt}): {e}")
             
             if attempt < max_retries:
                 logger.info(f"Следующая попытка через {current_delay} сек...")
                 await asyncio.sleep(current_delay)
             else:
-                logger.critical("❌ Превышено количество попыток подключения.")
-                raise e
+                logger.critical("❌ Все попытки инициализации исчерпаны.")
+                raise e 
         finally:
-            # Если мы вышли из цикла (успешно или после всех попыток)
             if success or attempt == max_retries:
                 await bot.session.close()
-                logger.info("📡 Сессия HTTP-клиента закрыта.")
+                logger.info("📡 Сессия закрыта.")
 
     if not success:
-        logger.error("Бот завершил работу, так и не установив соединение.")
+        logger.error("Бот завершил работу из-за недоступности ресурсов.")
 
 if __name__ == '__main__':
     try:
