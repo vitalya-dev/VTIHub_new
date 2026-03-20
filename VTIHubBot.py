@@ -711,47 +711,61 @@ async def main():
     
     args = parser.parse_args()
 
-    # 1. Пауза перед стартом для инициализации сети и дисков
+    # 1. Начальная пауза
     logger.info("--- ЗАПУСК СИСТЕМЫ ---")
-    logger.info("Ожидание 5 секунд для готовности сетевых ресурсов...")
+    logger.info("Ожидание 5 секунд для первичной готовности сети...")
     await asyncio.sleep(5)
 
-    # 2. Проверка критических ресурсов
+    # 2. Проверка базы данных
     if args.db_path:
         if not os.path.exists(args.db_path):
-            logger.error(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Файл базы данных не найден по пути: {args.db_path}")
-            logger.error("Проверьте подключение сетевого диска (Samba).")
-            # Бросаем ошибку, чтобы сработал блок удержания консоли в __main__
-            raise FileNotFoundError(f"База данных отсутствует: {args.db_path}")
+            logger.error(f"❌ База данных не найдена: {args.db_path}")
+            raise FileNotFoundError(f"Отсутствует БД по пути {args.db_path}")
         else:
-            logger.info(f"✅ База данных найдена: {args.db_path}")
+            logger.info(f"✅ База данных доступна.")
 
-    # 3. Инициализация бота
+    # 3. Настройка попыток подключения
+    max_retries = 10
+    retry_delay = 10  # секунд между попытками
+    
+    # Инициализируем бота вне цикла
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
     dp["printer_name"] = args.printer_name
     dp["channel_id"] = args.channel_id
     dp["db_path"] = args.db_path
-    
-    logger.info("Бот инициализирован. Запуск поллинга...")
-    
-    if args.printer_name:
-        logger.info(f"🖨️ Принтер: {args.printer_name}")
-    if args.channel_id:
-        logger.info(f"📢 Канал для логов: {args.channel_id}")
 
-    try:
-        # Очистка очереди обновлений
-        await bot.delete_webhook(drop_pending_updates=True)
-        # Запуск основного цикла
-        await dp.start_polling(bot)
-    except Exception as e:
-        logger.error(f"❌ Произошла ошибка во время работы: {e}")
-        raise e
-    finally:
-        # Чистое закрытие сессии бота
-        await bot.session.close()
-        logger.info("🛑 Сессия бота закрыта. Работа завершена.")
+    for attempt in range(1, max_retries + 1):
+        try:
+            logger.info(f"Попытка подключения к Telegram #{attempt} из {max_retries}...")
+            
+            # Проверка соединения: удаляем вебхук
+            await bot.delete_webhook(drop_pending_updates=True)
+            
+            logger.info("✅ Соединение установлено! Запускаю поллинг...")
+            
+            # Если мы здесь, значит сеть работает. Запускаем основной цикл.
+            await dp.start_polling(bot)
+            
+            # Если поллинг завершился без ошибок (например, выключили бота)
+            break 
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Ошибка при подключении (попытка {attempt}): {e}")
+            
+            if attempt < max_retries:
+                logger.info(f"Следующая попытка через {retry_delay} секунд...")
+                await asyncio.sleep(retry_delay)
+            else:
+                logger.error("❌ Все попытки подключения исчерпаны.")
+                await bot.session.close()
+                raise e # Пробрасываем ошибку в __main__ для удержания консоли
+        finally:
+            # Важно закрывать сессию только при полном выходе из цикла или фатальной ошибке
+            if attempt == max_retries:
+                 await bot.session.close()
+
+    logger.info("🛑 Работа бота завершена.")
 
 if __name__ == '__main__':
     try:
