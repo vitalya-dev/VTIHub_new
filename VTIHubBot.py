@@ -711,61 +711,65 @@ async def main():
     
     args = parser.parse_args()
 
-    # 1. Начальная пауза
+    # 1. Начальная пауза для «прогрева» системы
     logger.info("--- ЗАПУСК СИСТЕМЫ ---")
-    logger.info("Ожидание 5 секунд для первичной готовности сети...")
+    logger.info("Ожидание 5 секунд для первичной инициализации...")
     await asyncio.sleep(5)
 
-    # 2. Проверка базы данных
+    # 2. Проверка базы данных перед запуском сети
     if args.db_path:
         if not os.path.exists(args.db_path):
-            logger.error(f"❌ База данных не найдена: {args.db_path}")
-            raise FileNotFoundError(f"Отсутствует БД по пути {args.db_path}")
-        else:
-            logger.info(f"✅ База данных доступна.")
+            logger.error(f"❌ Критическая ошибка: База данных не найдена по пути {args.db_path}")
+            raise FileNotFoundError(f"Файл БД отсутствует: {args.db_path}")
+        logger.info(f"✅ Файл базы данных обнаружен.")
 
-    # 3. Настройка попыток подключения
-    max_retries = 10
-    retry_delay = 10  # секунд между попытками
-    
-    # Инициализируем бота вне цикла
+    # 3. Настройка параметров подключения
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    
     dp["printer_name"] = args.printer_name
     dp["channel_id"] = args.channel_id
     dp["db_path"] = args.db_path
 
+    max_retries = 10
+    base_delay = 5  # Начальная задержка в секундах
+    
+    success = False
+
     for attempt in range(1, max_retries + 1):
         try:
-            logger.info(f"Попытка подключения к Telegram #{attempt} из {max_retries}...")
+            logger.info(f"Попытка подключения к Telegram #{attempt}...")
             
-            # Проверка соединения: удаляем вебхук
+            # Проверяем связь, запрашивая информацию о боте
+            me = await bot.get_me()
+            logger.info(f"✅ Соединение установлено! Бот @{me.username} готов к работе.")
+            
+            # Очищаем старые обновления
             await bot.delete_webhook(drop_pending_updates=True)
             
-            logger.info("✅ Соединение установлено! Запускаю поллинг...")
-            
-            # Если мы здесь, значит сеть работает. Запускаем основной цикл.
+            success = True
+            # Запускаем бесконечный цикл обработки сообщений
             await dp.start_polling(bot)
-            
-            # Если поллинг завершился без ошибок (например, выключили бота)
-            break 
+            break # Если поллинг завершился штатно
             
         except Exception as e:
-            logger.warning(f"⚠️ Ошибка при подключении (попытка {attempt}): {e}")
+            # Рассчитываем прогрессивную задержку (5, 10, 20, 40... но не более 60 сек)
+            current_delay = min(base_delay * (2 ** (attempt - 1)), 60)
+            
+            logger.warning(f"⚠️ Ошибка сети или API (попытка {attempt}): {e}")
             
             if attempt < max_retries:
-                logger.info(f"Следующая попытка через {retry_delay} секунд...")
-                await asyncio.sleep(retry_delay)
+                logger.info(f"Следующая попытка через {current_delay} сек...")
+                await asyncio.sleep(current_delay)
             else:
-                logger.error("❌ Все попытки подключения исчерпаны.")
-                await bot.session.close()
-                raise e # Пробрасываем ошибку в __main__ для удержания консоли
+                logger.critical("❌ Превышено количество попыток подключения.")
+                raise e
         finally:
-            # Важно закрывать сессию только при полном выходе из цикла или фатальной ошибке
-            if attempt == max_retries:
-                 await bot.session.close()
+            # Если мы вышли из цикла (успешно или после всех попыток)
+            if success or attempt == max_retries:
+                await bot.session.close()
+                logger.info("📡 Сессия HTTP-клиента закрыта.")
 
-    logger.info("🛑 Работа бота завершена.")
+    if not success:
+        logger.error("Бот завершил работу, так и не установив соединение.")
 
 if __name__ == '__main__':
     try:
