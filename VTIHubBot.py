@@ -711,6 +711,10 @@ async def main():
     
     args = parser.parse_args()
 
+    # Пауза 5 секунд перед началом работы
+    logger.info("Ожидание инициализации системы (5 секунд)...")
+    await asyncio.sleep(5)
+
     # Инициализируем бота с дефолтным парсингом HTML
     bot = Bot(token=args.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     
@@ -736,6 +740,8 @@ async def main():
         await dp.start_polling(bot)
     except Exception as e:
         logger.error(f"❌ An error occurred during polling: {e}")
+        # Пробрасываем ошибку дальше, чтобы блок в if __name__ == '__main__' её поймал
+        raise e
     finally:
         logger.info("🛑 Bot has been stopped.")
 
