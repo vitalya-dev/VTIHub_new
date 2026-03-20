@@ -435,48 +435,51 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
 
 
 
-@dp.callback_query(F.data.startswith("print_ticket:"))
+@dp.callback_query(F.data.startswith("print_ticket"))
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: str = ""):
     """
-    Обрабатывает нажатие на кнопки печати (1, 2 или 3 копии).
-    Безопасно извлекает количество из callback_data.
+    Универсальный обработчик: поддерживает старый формат "print_ticket" 
+    и новый "print_ticket:N".
     """
-    # 1. Защита от пустого callback.data (убирает предупреждение редактора)
+    # 1. Защита от null
     if not callback.data:
-        logger.warning("Получен CallbackQuery без данных (data is None).")
         return
 
     user_id = callback.from_user.id
     
-    # 2. Извлекаем количество копий (например, "print_ticket:2" -> 2)
-    try:
-        parts = callback.data.split(":")
-        copies = int(parts[1]) if len(parts) > 1 else 1
-    except (IndexError, ValueError):
-        copies = 1 
+    # 2. Логика извлечения копий с поддержкой старого формата
+    if ":" in callback.data:
+        # Новый формат (print_ticket:2)
+        try:
+            copies = int(callback.data.split(":")[1])
+        except (IndexError, ValueError):
+            copies = 1
+    else:
+        # Старый формат (print_ticket)
+        copies = 1
 
-    # 3. Ответ на нажатие
+    # 3. Ответ на нажатие (всплывашка в телеграме)
     try:
-        await callback.answer(f"Печатаю копий: {copies}... 🖨️")
+        await callback.answer(f"Печать: {copies} шт. 🖨️")
     except TelegramBadRequest:
         logger.warning(f"Клик от {user_id} устарел.")
     except Exception as e:
         logger.error(f"Не удалось ответить на callback: {e}")
 
-    # 4. Проверка сообщения и документа
+    # 4. Базовые проверки
     if not callback.message or not isinstance(callback.message, Message):
         return
 
     document = callback.message.document
     if not document:
-        await bot.send_message(user_id, "❌ Документ не найден в сообщении.")
+        await bot.send_message(user_id, "❌ Документ не найден.")
         return
 
     if not printer_name:
-        await bot.send_message(user_id, "❌ Ошибка: Принтер не настроен на сервере.")
+        await bot.send_message(user_id, "❌ Принтер не настроен.")
         return
 
-    # 5. Процесс печати
+    # 5. Процесс скачивания и печати
     temp_msg = await bot.send_message(user_id, "⌛")
     file_name = document.file_name or f"ticket_{document.file_id}.pdf"
     cached_pdf_path = os.path.abspath(os.path.join(CACHE_DIR, file_name))
@@ -486,10 +489,10 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
     try:
         if not os.path.exists(cached_pdf_path):
             await bot.download(document, destination=cached_pdf_path)
-            logger.info(f"Файл {file_name} скачан.")
+            logger.info(f"Файл {file_name} загружен в кеш.")
 
         for i in range(copies):
-            logger.info(f"Печать копии {i+1}/{copies}: {file_name}")
+            logger.info(f"Печать {i+1}/{copies}: {file_name}")
             
             process = await asyncio.create_subprocess_exec(
                 "PDFXCview",
@@ -503,7 +506,7 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
             try:
                 await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
                 if copies > 1 and i < copies - 1:
-                    await asyncio.sleep(1) # Пауза между заданиями
+                    await asyncio.sleep(1) # Небольшая пауза между заданиями
             except asyncio.TimeoutError:
                 try:
                     process.kill()
@@ -512,7 +515,7 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
 
     except Exception as e:
         logger.error(f"Ошибка печати: {e}")
-        await bot.send_message(user_id, "❌ Произошла ошибка при отправке на печать.")
+        await bot.send_message(user_id, "❌ Ошибка при отправке на принтер.")
     finally:
         try:
             await temp_msg.delete()
