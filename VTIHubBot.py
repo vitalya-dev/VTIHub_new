@@ -747,6 +747,17 @@ async def main():
 
 if __name__ == '__main__':
     try:
+        # Запуск основной функции бота
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("Bot stopped by user (KeyboardInterrupt).")
+        # Обычное завершение пользователем (Ctrl+C)
+        logger.info("Бот остановлен пользователем (KeyboardInterrupt).")
+    except Exception as e:
+        # Обработка любых критических ошибок
+        logger.critical(f"Бот завершил работу из-за ошибки: {e}", exc_info=True)
+        print("\n" + "!" * 50)
+        print("КРИТИЧЕСКАЯ ОШИБКА: Бот упал.")
+        print("Текст ошибки приведен выше. Проверьте подключение к сети и базе данных.")
+        print("!" * 50)
+        # Ожидание ввода, чтобы окно консоли не закрылось
+        input("\nНажмите [ENTER], чтобы закрыть это окно...")
