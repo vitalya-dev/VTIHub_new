@@ -680,7 +680,7 @@ async def main():
     dp["channel_id"] = args.channel_id
     dp["db_path"] = args.db_path
 
-    max_retries = 10
+    max_retries = 100
     base_delay = 5
     success = False
 
@@ -707,7 +707,7 @@ async def main():
             break 
             
         except Exception as e:
-            current_delay = min(base_delay * (2 ** (attempt - 1)), 60)
+            current_delay = min(base_delay * (2 ** (attempt - 1)), 160)
             logger.warning(f"⚠️ Ресурс не готов (попытка {attempt}): {e}")
             
             if attempt < max_retries:
