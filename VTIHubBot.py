@@ -201,17 +201,11 @@ async def update_search_button(bot: Bot, channel_id: str, old_msg_id: Optional[i
         except Exception as e:
             logger.error(f"Ошибка при удалении старого сообщения поиска: {e}")
 
-    # Отправляем новое сообщение с максимально выделенным хештегом
+    # Отправляем новое сообщение с обычным хештегом (без кнопок)
     try:
         new_msg = await bot.send_message(
             chat_id=channel_id,
-            text=(
-                "🔍 <b>Быстрый поиск заявок</b>\n\n"
-                "Нажмите на хештег ниже, а затем допишите в строке поиска нужный номер телефона:\n\n"
-                "👇👇👇\n"
-                "👉   <b>#t</b>   👈\n"
-                "👆👆👆"
-            )
+            text="🔍 <b>Быстрый поиск заявок</b>\n\nНажмите на хештег 👉 #t 👈, а затем допишите в строке поиска нужный номер телефона."
         )
         return new_msg.message_id
     except Exception as e:
