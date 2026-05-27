@@ -322,6 +322,15 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
                 reply_markup=keyboard
             )
             logger.info(f"Успешно отправлено в канал {channel_id} (Заявка ID: {case_id})")
+
+            # --- НОВАЯ ЛОГИКА: ОБНОВЛЕНИЕ КНОПКИ ПОИСКА ---
+            search_file_path = os.path.join(ID_STORAGE_DIR, "search_msg_id.json")
+            old_search_id = load_search_msg_id(search_file_path)
+            new_search_id = await update_search_button(bot, channel_id, old_search_id)
+            if new_search_id:
+                save_search_msg_id(search_file_path, new_search_id)
+            # -----------------------------------------------
+
         except Exception as e:
             logger.error(f"Ошибка при отправке в канал {channel_id}: {e}")
     else:
