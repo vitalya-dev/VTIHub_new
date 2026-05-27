@@ -452,6 +452,15 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                     if str(channel_id).startswith("-100"):
                         clean_channel_id = str(channel_id)[4:]
                         channel_link = f"\n\n🔗 <a href='https://t.me/c/{clean_channel_id}/{sent_msg.message_id}'>Посмотреть вашу заявку в канале</a>"
+                    
+                    # --- НОВАЯ ЛОГИКА: ОБНОВЛЕНИЕ КНОПКИ ПОИСКА ---
+                    search_file_path = os.path.join(ID_STORAGE_DIR, "search_msg_id.json")
+                    old_search_id = load_search_msg_id(search_file_path)
+                    new_search_id = await update_search_button(bot, channel_id, old_search_id)
+                    if new_search_id:
+                        save_search_msg_id(search_file_path, new_search_id)
+                    # -----------------------------------------------
+
                 except Exception as e:
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
 
