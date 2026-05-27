@@ -186,7 +186,7 @@ def get_new_cases_from_db(db_path: str, last_id: int) -> list[sqlite3.Row]:
 
 async def update_search_button(bot: Bot, channel_id: str, old_msg_id: Optional[int]) -> Optional[int]:
     """
-    Удаляет старое сообщение с кнопкой поиска и отправляет новое в самый низ канала.
+    Удаляет старое сообщение с поиском и отправляет новое в самый низ канала.
     Возвращает ID нового сообщения.
     """
     if not channel_id:
@@ -201,27 +201,15 @@ async def update_search_button(bot: Bot, channel_id: str, old_msg_id: Optional[i
         except Exception as e:
             logger.error(f"Ошибка при удалении старого сообщения поиска: {e}")
 
-    # Очищаем ID канала от префикса -100 для формирования рабочей ссылки
-    clean_channel_id = str(channel_id)[4:] if str(channel_id).startswith("-100") else str(channel_id)
-    
-    # %23 — это URL-кодированный символ решетки (#). Ищем по префиксу наших хештегов: #t
-    search_url = f"https://t.me/c/{clean_channel_id}?q=%23t"
-
-    # Создаем клавиатуру с кнопкой
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🔍 Поиск заявок по каналу", url=search_url)
-    ]])
-
-    # Отправляем новое сообщение
+    # Отправляем новое сообщение с обычным хештегом (без кнопок)
     try:
         new_msg = await bot.send_message(
             chat_id=channel_id,
-            text="👇 Нажмите кнопку ниже, чтобы быстро найти нужную заявку по номеру телефона:",
-            reply_markup=keyboard
+            text="🔍 <b>Быстрый поиск заявок</b>\n\nНажмите на хештег 👉 #t 👈, а затем допишите в строке поиска нужный номер телефона."
         )
         return new_msg.message_id
     except Exception as e:
-        logger.error(f"Ошибка при отправке кнопки поиска в канал {channel_id}: {e}")
+        logger.error(f"Ошибка при отправке сообщения поиска в канал {channel_id}: {e}")
         return None
 
 async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id: str = "") -> None:
