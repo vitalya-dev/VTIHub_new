@@ -104,6 +104,29 @@ def save_last_known_id_to_file(file_path: str, last_id: int) -> None:
     except Exception as e:
         logger.error(f"Ошибка сохранения ID {last_id} в файл {file_path}: {e}")
 
+def load_search_msg_id(file_path: str) -> Optional[int]:
+    """Загружает ID сообщения с кнопкой поиска из файла."""
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get("search_msg_id")
+        return None
+    except Exception as e:
+        logger.error(f"Ошибка загрузки ID сообщения поиска из {file_path}: {e}")
+        return None
+
+def save_search_msg_id(file_path: str, msg_id: int) -> None:
+    """Сохраняет ID сообщения с кнопкой поиска в файл."""
+    try:
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        data = {"search_msg_id": msg_id}
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f)
+    except Exception as e:
+        logger.error(f"Ошибка сохранения ID сообщения поиска в {file_path}: {e}")
+
+        
 
 def get_initial_max_case_id(db_path: str) -> int:
     """
