@@ -3,10 +3,13 @@ import logging
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-# ВЕРНУЛИ импорт Image, так как теперь передаем картинку во Фрейм
 from reportlab.platypus import Paragraph, Frame, BaseDocTemplate, PageTemplate, Flowable, Image
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+
+# --- НОВЫЕ ИМПОРТЫ ДЛЯ QR-КОДА ---
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics.barcode import qr
 
 # Инициализация логгера для этого модуля
 logger = logging.getLogger(__name__)
