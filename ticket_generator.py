@@ -58,22 +58,40 @@ def create_multipage_label(
             Paragraph("8 (978) 762-89-67", style_header_text)
         ]
 
-        # --- НОВЫЙ ФРЕЙМ ДЛЯ ЛОГОТИПА ---
-        logo_frame = Frame(
+        # --- ФРЕЙМ ДЛЯ QR-КОДА (вместо логотипа) ---
+        qr_frame = Frame(
             0*mm, 29*mm, 12*mm, 11*mm, 
             leftPadding=2*mm, bottomPadding=1.5*mm, rightPadding=2*mm, topPadding=1.5*mm,
             showBoundary=0 # Включено для дебага
         )
 
-        if os.path.exists(logo_path):
-            # Создаем объект Image и закидываем его в фрейм
-            logo_img = Image(logo_path, width=8*mm, height=8*mm)
-            logo_frame.addFromList([logo_img], canvas)
-        else:
-            logger.warning(f"Логотип не найден по пути {logo_path}, пропускаем.")
+        # Очищаем телефон от лишних символов (оставляем только цифры и плюс)
+        clean_phone = "".join(c for c in phone if c.isdigit() or c == '+')
+        if not clean_phone:
+            clean_phone = phone # Резервный вариант, если номер пустой
+            
+        # Создаем виджет QR-кода только с очищенным номером телефона (без tel:)
+        qr_code = qr.QrCodeWidget(clean_phone)
+        
+        # Получаем исходные габариты QR-кода для правильного масштабирования
+        bounds = qr_code.getBounds()
+        qr_w = bounds[2] - bounds[0]
+        qr_h = bounds[3] - bounds[1]
+        
+        # Наш целевой размер под QR-код — 8x8 мм
+        target_size = 8 * mm
+        
+        # Рассчитываем матрицу трансформации, чтобы сжать/растянуть код до 8 мм
+        transform = [target_size / qr_w, 0, 0, target_size / qr_h, 0, 0]
+        
+        # Оборачиваем в Drawing для совместимости с элементами ReportLab
+        d = Drawing(target_size, target_size, transform=transform)
+        d.add(qr_code)
+        
+        # Добавляем рисунок во фрейм
+        qr_frame.addFromList([d], canvas)
 
         # --- ФРЕЙМ ТОЛЬКО ДЛЯ ТЕКСТА ШАПКИ ---
-        # Начинается по X с 12 мм, по Y с 29 мм
         header_frame = Frame(
             12*mm, 29*mm, width - 12*mm, 11*mm, 
             leftPadding=2*mm, bottomPadding=0, rightPadding=2*mm, topPadding=1*mm,
@@ -132,7 +150,7 @@ def create_multipage_label(
 # ==========================================
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    logger.info("Запуск тестовой генерации этикетки...")
+    logger.info("Запуск тестовой генерации этикетки с QR-кодом...")
     
     test_description = (
         "Ноутбук не включается. При нажатии на кнопку питания мигает индикатор 3 раза. "
@@ -140,6 +158,7 @@ if __name__ == "__main__":
         "Также нужно почистить систему охлаждения и заменить термопасту."
     )
     
+    # Аргумент logo_path оставляем для проверки обратной совместимости
     result_file = create_multipage_label(
         filename="test_label.pdf",
         logo_path="logo.png", 
@@ -151,5 +170,7 @@ if __name__ == "__main__":
     
     if result_file:
         logger.info(f"Тест пройден! Файл успешно создан: {os.path.abspath(result_file)}")
+        logger.info("Открой PDF и проверь: в левом верхнем углу должен быть QR-код.")
+        logger.info("Попробуй отсканировать его камерой телефона — должен появиться номер +79991234567.")
     else:
         logger.error("Тест провален. Файл не был создан. Проверь наличие шрифтов!")
