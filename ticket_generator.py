@@ -59,9 +59,11 @@ def create_multipage_label(
         ]
 
         # --- ФРЕЙМ ДЛЯ QR-КОДА (вместо логотипа) ---
+        # Возвращаем на одну линию с текстом (Y=29 мм)
+        # Устанавливаем topPadding=1*mm для идеального выравнивания с текстом
         qr_frame = Frame(
             0*mm, 29*mm, 12*mm, 11*mm, 
-            leftPadding=2*mm, bottomPadding=1.5*mm, rightPadding=2*mm, topPadding=1.5*mm,
+            leftPadding=2*mm, bottomPadding=0, rightPadding=0, topPadding=1*mm,
             showBoundary=0 # Включено для дебага
         )
 
@@ -70,7 +72,7 @@ def create_multipage_label(
         if not clean_phone:
             clean_phone = phone # Резервный вариант, если номер пустой
             
-        # Создаем виджет QR-кода только с очищенным номером телефона (без tel:)
+        # Создаем виджет QR-кода только с очищенным номером телефона
         qr_code = qr.QrCodeWidget(clean_phone)
         
         # Получаем исходные габариты QR-кода для правильного масштабирования
@@ -78,10 +80,10 @@ def create_multipage_label(
         qr_w = bounds[2] - bounds[0]
         qr_h = bounds[3] - bounds[1]
         
-        # Наш целевой размер под QR-код — 8x8 мм
-        target_size = 8 * mm
+        # Наш целевой размер под QR-код — 10x10 мм
+        target_size = 10 * mm
         
-        # Рассчитываем матрицу трансформации, чтобы сжать/растянуть код до 8 мм
+        # Рассчитываем матрицу трансформации, чтобы сжать/растянуть код до 10 мм
         transform = [target_size / qr_w, 0, 0, target_size / qr_h, 0, 0]
         
         # Оборачиваем в Drawing для совместимости с элементами ReportLab
@@ -144,7 +146,7 @@ def create_multipage_label(
     except Exception as e:
         logger.error(f"Ошибка при создании PDF: {e}")
         return None
-
+        
 # ==========================================
 # БЛОК ДЛЯ ОТЛАДКИ (DEBUG)
 # ==========================================
