@@ -104,28 +104,6 @@ def save_last_known_id_to_file(file_path: str, last_id: int) -> None:
     except Exception as e:
         logger.error(f"Ошибка сохранения ID {last_id} в файл {file_path}: {e}")
 
-def load_search_msg_id(file_path: str) -> Optional[int]:
-    """Загружает ID сообщения с кнопкой поиска из файла."""
-    try:
-        if os.path.exists(file_path):
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            return data.get("search_msg_id")
-        return None
-    except Exception as e:
-        logger.error(f"Ошибка загрузки ID сообщения поиска из {file_path}: {e}")
-        return None
-
-def save_search_msg_id(file_path: str, msg_id: int) -> None:
-    """Сохраняет ID сообщения с кнопкой поиска в файл."""
-    try:
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        data = {"search_msg_id": msg_id}
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f)
-    except Exception as e:
-        logger.error(f"Ошибка сохранения ID сообщения поиска в {file_path}: {e}")
-
 
 
 def get_initial_max_case_id(db_path: str) -> int:
@@ -183,34 +161,6 @@ def get_new_cases_from_db(db_path: str, last_id: int) -> list[sqlite3.Row]:
         finally:
             conn.close()
     return new_cases
-
-async def update_search_button(bot: Bot, channel_id: str, old_msg_id: Optional[int]) -> Optional[int]:
-    """
-    Удаляет старое сообщение с поиском и отправляет новое в самый низ канала.
-    Возвращает ID нового сообщения.
-    """
-    if not channel_id:
-        return None
-
-    # Пытаемся удалить старое сообщение, если его ID известен
-    if old_msg_id:
-        try:
-            await bot.delete_message(chat_id=channel_id, message_id=old_msg_id)
-        except TelegramBadRequest:
-            logger.warning(f"Не удалось удалить старое сообщение поиска {old_msg_id} (возможно, оно уже удалено).")
-        except Exception as e:
-            logger.error(f"Ошибка при удалении старого сообщения поиска: {e}")
-
-    # Отправляем новое сообщение с обычным хештегом (без кнопок)
-    try:
-        new_msg = await bot.send_message(
-            chat_id=channel_id,
-            text="🔍 <b>Быстрый поиск заявок</b>\n\nНажмите на хештег 👉 #t 👈, а затем допишите в строке поиска нужный номер телефона."
-        )
-        return new_msg.message_id
-    except Exception as e:
-        logger.error(f"Ошибка при отправке сообщения поиска в канал {channel_id}: {e}")
-        return None
 
 async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id: str = "") -> None:
     """
@@ -310,14 +260,6 @@ async def process_and_send_db_case(case_data: sqlite3.Row, bot: Bot, channel_id:
                 reply_markup=keyboard
             )
             logger.info(f"Успешно отправлено в канал {channel_id} (Заявка ID: {case_id})")
-
-            # --- НОВАЯ ЛОГИКА: ОБНОВЛЕНИЕ КНОПКИ ПОИСКА ---
-            search_file_path = os.path.join(ID_STORAGE_DIR, "search_msg_id.json")
-            old_search_id = load_search_msg_id(search_file_path)
-            new_search_id = await update_search_button(bot, channel_id, old_search_id)
-            if new_search_id:
-                save_search_msg_id(search_file_path, new_search_id)
-            # -----------------------------------------------
 
         except Exception as e:
             logger.error(f"Ошибка при отправке в канал {channel_id}: {e}")
@@ -440,14 +382,6 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
                     if str(channel_id).startswith("-100"):
                         clean_channel_id = str(channel_id)[4:]
                         channel_link = f"\n\n🔗 <a href='https://t.me/c/{clean_channel_id}/{sent_msg.message_id}'>Посмотреть вашу заявку в канале</a>"
-                    
-                    # --- НОВАЯ ЛОГИКА: ОБНОВЛЕНИЕ КНОПКИ ПОИСКА ---
-                    search_file_path = os.path.join(ID_STORAGE_DIR, "search_msg_id.json")
-                    old_search_id = load_search_msg_id(search_file_path)
-                    new_search_id = await update_search_button(bot, channel_id, old_search_id)
-                    if new_search_id:
-                        save_search_msg_id(search_file_path, new_search_id)
-                    # -----------------------------------------------
 
                 except Exception as e:
                     logger.error(f"Failed to send to channel {channel_id}: {e}")
