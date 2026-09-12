@@ -412,27 +412,23 @@ async def web_app_data_handler(message: Message, bot: Bot, channel_id: str = "")
 @dp.callback_query(F.data.startswith("print_ticket"))
 async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: str = ""):
     """
-    Универсальный обработчик: поддерживает старый формат "print_ticket" 
-    и новый "print_ticket:N".
+    Универсальный обработчик печати билетов с защитой от зависших сообщений статуса.
     """
-    # 1. Защита от null
     if not callback.data:
         return
 
     user_id = callback.from_user.id
     
-    # 2. Логика извлечения копий с поддержкой старого формата
+    # Определение количества копий
     if ":" in callback.data:
-        # Новый формат (print_ticket:2)
         try:
             copies = int(callback.data.split(":")[1])
         except (IndexError, ValueError):
             copies = 1
     else:
-        # Старый формат (print_ticket)
         copies = 1
 
-    # 3. Ответ на нажатие (всплывашка в телеграме)
+    # Всплывающее уведомление в Telegram (Toast)
     try:
         await callback.answer(f"Печать: {copies} шт. 🖨️")
     except TelegramBadRequest:
@@ -440,7 +436,7 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
     except Exception as e:
         logger.error(f"Не удалось ответить на callback: {e}")
 
-    # 4. Базовые проверки
+    # Проверка наличия сообщения и документа
     if not callback.message or not isinstance(callback.message, Message):
         return
 
@@ -453,11 +449,15 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
         await bot.send_message(user_id, "❌ Принтер не настроен.")
         return
 
-    # 5. Процесс скачивания и печати
-    temp_msg = await bot.send_message(user_id, "⌛")
+    # Отправляем временное сообщение с песочными часами
+    temp_msg = None
+    try:
+        temp_msg = await bot.send_message(user_id, "⌛ Печать...")
+    except Exception as e:
+        logger.warning(f"Не удалось отправить статусное сообщение пользователю {user_id}: {e}")
+
     file_name = document.file_name or f"ticket_{document.file_id}.pdf"
     cached_pdf_path = os.path.abspath(os.path.join(CACHE_DIR, file_name))
-    
     PRINT_TIMEOUT = 15.0 
 
     try:
@@ -480,21 +480,31 @@ async def print_ticket_handler(callback: CallbackQuery, bot: Bot, printer_name: 
             try:
                 await asyncio.wait_for(process.communicate(), timeout=PRINT_TIMEOUT)
                 if copies > 1 and i < copies - 1:
-                    await asyncio.sleep(1) # Небольшая пауза между заданиями
+                    await asyncio.sleep(1)
             except asyncio.TimeoutError:
                 try:
                     process.kill()
-                except:
+                except Exception:
                     pass
 
     except Exception as e:
         logger.error(f"Ошибка печати: {e}")
         await bot.send_message(user_id, "❌ Ошибка при отправке на принтер.")
     finally:
-        try:
-            await temp_msg.delete()
-        except:
-            pass
+        # Гарантированная очистка: сбрасываем кеш клиента и логируем ошибки
+        if temp_msg:
+            try:
+                # 1. Сначала меняем текст, чтобы сбросить эмодзи в кеше клиента
+                await temp_msg.edit_text("✅ Готово!")
+                # Небольшая пауза, чтобы Telegram зафиксировал обновление состояния сообщения
+                await asyncio.sleep(0.5)
+                # 2. Окончательно удаляем сообщение
+                await temp_msg.delete()
+            except TelegramBadRequest as e:
+                # Если сообщение уже удалено пользователем вручную
+                logger.debug(f"Сообщение уже отсутствует при удалении: {e}")
+            except Exception as e:
+                logger.error(f"Не удалось удалить сервисное сообщение {temp_msg.message_id}: {e}")
 import re
 
 def format_phone_number(phone_str: str) -> str:
