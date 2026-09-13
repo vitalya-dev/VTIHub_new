@@ -576,7 +576,7 @@ async def send_heartbeat():
         try:
             # Создаем сессию и отправляем POST-запрос с таймаутом в 10 секунд
             async with aiohttp.ClientSession() as session:
-                async with session.post(HEARTBEAT_URL, timeout=10) as response:
+                async with session.post(HEARTBEAT_URL, timeout=aiohttp.ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         logger.info("Heartbeat успешно отправлен на воркер.")
                     else:
@@ -684,14 +684,14 @@ async def on_startup(bot: Bot, dispatcher: Dispatcher):
     """
     Выполняется один раз при старте бота.
     """
-    # Достаем путь к БД и ID канала, которые мы передали в диспетчер при запуске.
-    # Явно приводим к str(), чтобы анализаторы типов понимали, с чем работают, и не выдавали Any | None.
     db_path = str(dispatcher.get("db_path", ""))
     channel_id = str(dispatcher.get("channel_id", ""))
     
+    logger.info("Запускаем heartbeat задачу...")
+    asyncio.create_task(send_heartbeat())
+    
     if db_path:
-        logger.info("Запускаем фоновые задачи...")
-        # Передаем bot и channel_id в функцию мониторинга
+        logger.info("Запускаем фоновые задачи БД...")
         asyncio.create_task(monitor_database(db_path, bot, channel_id))
     else:
         logger.info("Путь к БД не указан (--db). Мониторинг отключен.")
