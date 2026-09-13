@@ -5,6 +5,8 @@ import json
 import os # NEW: For deleting the temporary PDF file
 from datetime import datetime # NEW: For getting current time
 
+import aiohttp # ДОБАВЛЕНО: для отправки heartbeat запросов
+
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
@@ -27,6 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 WEB_APP_URL = "https://vitalya-dev.github.io/VTIHub_new/ticket_app.html"
+HEARTBEAT_URL = "https://vtihub.vitalya-dev.workers.dev/heartbeat" # ДОБАВЛЕНО: адрес воркера
 
 CACHE_DIR = "pdf_cache"
 os.makedirs(CACHE_DIR, exist_ok=True) # Создаст папку, если её нет
@@ -562,6 +565,29 @@ def get_phone_hashtag(phone_str: str) -> str:
 
     # Соединяем теги широким пробелом и разделителем, чтобы увеличить зону клика
     return "  |  ".join(tags)
+
+async def send_heartbeat():
+    """
+    Фоновая задача, которая каждые 10 минут отправляет POST-запрос
+    на наш Cloudflare Worker, чтобы сообщить, что бот жив.
+    """
+    logger.info("Запуск фоновой задачи heartbeat (каждые 10 минут)...")
+    while True:
+        try:
+            # Создаем сессию и отправляем POST-запрос с таймаутом в 10 секунд
+            async with aiohttp.ClientSession() as session:
+                async with session.post(HEARTBEAT_URL, timeout=10) as response:
+                    if response.status == 200:
+                        logger.info("Heartbeat успешно отправлен на воркер.")
+                    else:
+                        logger.warning(f"Heartbeat отправлен, но воркер вернул статус: {response.status}")
+        except Exception as e:
+            # Перехватываем ошибки (например, нет сети), чтобы цикл продолжал работать
+            logger.error(f"Ошибка при отправке heartbeat: {e}")
+        
+        # Засыпаем на 600 секунд (10 минут) до следующей отправки
+        await asyncio.sleep(600)
+
 
 async def monitor_database(db_path: str, bot: Bot, channel_id: str = ""):
     """
