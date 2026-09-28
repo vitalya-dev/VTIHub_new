@@ -717,11 +717,15 @@
 					});
 				}
 
-				// НОВОЕ: Слушатель для кнопки очистки истории
 				const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 				if (clearHistoryBtn) {
 					clearHistoryBtn.addEventListener('click', clearHistory);
 				}
+
+				// Запуск проверки статуса бота при загрузке
+				checkBotStatus();
+				// Установка интервала для проверки каждые 30 секунд (30000 мс)
+				setInterval(checkBotStatus, 30000);
 			});
 
 			// Функция для проверки статуса бота
