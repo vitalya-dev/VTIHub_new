@@ -60,6 +60,43 @@
 				font-weight: 500;
 				color: var(--tg-theme-text-color, var(--original-text-color));
 				white-space: nowrap;
+				display: flex;
+				align-items: center;
+				gap: 12px;
+			}
+
+			.bot-status {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				font-size: 12px;
+				padding: 4px 8px;
+				border-radius: 12px;
+				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				transition: all 0.3s ease;
+			}
+
+			.status-indicator {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background-color: #999;
+			}
+
+			.bot-status.online .status-indicator {
+				background-color: #34c759;
+				box-shadow: 0 0 4px rgba(52, 199, 89, 0.4);
+			}
+
+			.bot-status.offline .status-indicator {
+				background-color: #ff3b30;
+				box-shadow: 0 0 4px rgba(255, 59, 48, 0.4);
+			}
+
+			.status-text {
+				color: var(--tg-theme-text-color, var(--original-text-color));
+				font-weight: normal;
 			}
 
 			.history-toggle-btn {
