@@ -724,6 +724,39 @@
 				}
 			});
 
+			// Функция для проверки статуса бота
+			async function checkBotStatus() {
+				// ВАЖНО: Замените этот URL на реальный адрес вашего воркера!
+				const WORKER_URL = 'https://vtihub.vitalya-dev.workers.dev/'; 
+				const statusElement = document.getElementById('botStatus');
+				const statusText = statusElement.querySelector('.status-text');
+
+				try {
+					const response = await fetch(`${WORKER_URL}/status`);
+					if (!response.ok) {
+						throw new Error('Network response was not ok');
+					}
+					const data = await response.json();
+
+					statusElement.classList.remove('online', 'offline');
+					
+					if (data.online) {
+						statusElement.classList.add('online');
+						statusText.textContent = 'В сети';
+						statusElement.setAttribute('aria-label', 'Статус бота: В сети');
+					} else {
+						statusElement.classList.add('offline');
+						statusText.textContent = 'Не в сети';
+						statusElement.setAttribute('aria-label', 'Статус бота: Не в сети');
+					}
+				} catch (error) {
+					console.error('Ошибка при проверке статуса бота:', error);
+					statusElement.classList.remove('online', 'offline');
+					statusText.textContent = 'Ошибка';
+					statusElement.setAttribute('aria-label', 'Статус бота: Ошибка проверки');
+				}
+			}
+
 		</script>
 	</body>
 </html>
