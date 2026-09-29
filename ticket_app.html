@@ -46,6 +46,12 @@
 				max-width: 400px;
 				box-sizing: border-box;
 			}
+			
+			.top-bar {
+				display: flex;
+				justify-content: flex-end;
+				margin-bottom: 10px;
+			}
 
 			.header-wrap {
 				display: flex;
@@ -60,9 +66,6 @@
 				font-weight: 500;
 				color: var(--tg-theme-text-color, var(--original-text-color));
 				white-space: nowrap;
-				display: flex;
-				align-items: center;
-				gap: 12px;
 			}
 
 			.bot-status {
@@ -363,14 +366,15 @@
 	</head>
 	<body>
 		<div class="ticket-container">
-			<div class="header-wrap">
-				<div class="header">
-					➕ Новая Заявка
-					<div id="botStatus" class="bot-status" aria-label="Статус бота: неизвестно">
-						<span class="status-indicator"></span>
-						<span class="status-text">Проверка...</span>
-					</div>
+			<div class="top-bar">
+				<div id="botStatus" class="bot-status" aria-label="Статус бота: неизвестно">
+					<span class="status-indicator"></span>
+					<span class="status-text">Проверка...</span>
 				</div>
+			</div>
+
+			<div class="header-wrap">
+				<div class="header">➕ Новая Заявка</div>
 				<button type="button" class="history-toggle-btn" id="openHistoryBtn">🕒 История</button>
 			</div>
 
