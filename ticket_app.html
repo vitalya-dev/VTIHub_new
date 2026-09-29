@@ -9,8 +9,8 @@
 		<title>Приложение Заявок - Новая Заявка</title>
 		<style>
 			/* :root definition is no longer strictly needed for these colors,
-				 but kept here for clarity on the original design intent or potential future use.
-				 The actual styling now uses Telegram variables with fallbacks. */
+       but kept here for clarity on the original design intent or potential future use.
+       The actual styling now uses Telegram variables with fallbacks. */
 			:root {
 				--original-primary-color: #2481d7;
 				--original-secondary-color: #e5e5ea;
@@ -46,6 +46,7 @@
 			}
 
 			.ticket-container {
+				position: relative;
 				background: var(
 					--tg-theme-secondary-bg-color,
 					var(--original-white)
@@ -61,7 +62,8 @@
 			.top-bar {
 				display: flex;
 				justify-content: flex-start;
-				margin-bottom: 10px;
+				align-items: center;
+				margin-bottom: 8px;
 			}
 
 			.header-wrap {
@@ -80,41 +82,27 @@
 			}
 
 			.bot-status {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-				font-size: 12px;
-				padding: 4px 8px;
-				border-radius: 12px;
-				background-color: var(
-					--tg-theme-secondary-bg-color,
-					var(--original-secondary-color)
-				);
-				border: 1px solid
-					var(--tg-theme-hint-color, var(--original-border-color));
-				transition: all 0.3s ease;
-			}
-
-			.status-indicator {
 				width: 8px;
 				height: 8px;
 				border-radius: 50%;
 				background-color: #999;
+				display: inline-block;
+				transition:
+					background-color 0.3s ease,
+					box-shadow 0.3s ease;
+				cursor: help;
+				padding: 0;
+				border: none;
 			}
 
-			.bot-status.online .status-indicator {
+			.bot-status.online {
 				background-color: #34c759;
-				box-shadow: 0 0 4px rgba(52, 199, 89, 0.4);
+				box-shadow: 0 0 5px rgba(52, 199, 89, 0.6);
 			}
 
-			.bot-status.offline .status-indicator {
+			.bot-status.offline {
 				background-color: #ff3b30;
-				box-shadow: 0 0 4px rgba(255, 59, 48, 0.4);
-			}
-
-			.status-text {
-				color: var(--tg-theme-text-color, var(--original-text-color));
-				font-weight: normal;
+				box-shadow: 0 0 5px rgba(255, 59, 48, 0.6);
 			}
 
 			.history-toggle-btn {
@@ -442,11 +430,9 @@
 				<div
 					id="botStatus"
 					class="bot-status"
+					title="Статус бота: неизвестно"
 					aria-label="Статус бота: неизвестно"
-				>
-					<span class="status-indicator"></span>
-					<span class="status-text">Проверка...</span>
-				</div>
+				></div>
 			</div>
 
 			<div class="header-wrap">
@@ -939,7 +925,7 @@
 				// ВАЖНО: Замените этот URL на реальный адрес вашего воркера!
 				const WORKER_URL = "https://vtihub.vitalya-dev.workers.dev";
 				const statusElement = document.getElementById("botStatus");
-				const statusText = statusElement.querySelector(".status-text");
+				if (!statusElement) return;
 
 				try {
 					const response = await fetch(`${WORKER_URL}/status`);
@@ -952,14 +938,14 @@
 
 					if (data.online) {
 						statusElement.classList.add("online");
-						statusText.textContent = "В сети";
+						statusElement.setAttribute("title", "Бот в сети");
 						statusElement.setAttribute(
 							"aria-label",
 							"Статус бота: В сети",
 						);
 					} else {
 						statusElement.classList.add("offline");
-						statusText.textContent = "Не в сети";
+						statusElement.setAttribute("title", "Бот не в сети");
 						statusElement.setAttribute(
 							"aria-label",
 							"Статус бота: Не в сети",
@@ -968,7 +954,10 @@
 				} catch (error) {
 					console.error("Ошибка при проверке статуса бота:", error);
 					statusElement.classList.remove("online", "offline");
-					statusText.textContent = "Ошибка";
+					statusElement.setAttribute(
+						"title",
+						"Ошибка проверки статуса",
+					);
 					statusElement.setAttribute(
 						"aria-label",
 						"Статус бота: Ошибка проверки",
