@@ -1,8 +1,11 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+		/>
 		<title>Приложение Заявок - Новая Заявка</title>
 		<style>
 			/* :root definition is no longer strictly needed for these colors,
@@ -18,12 +21,17 @@
 				--original-border-color: #ddd;
 				--original-destructive-color: red;
 				/* Alpha version of button color for box-shadow, adjust as needed or use a fixed rgba */
-				--tg-theme-button-color-alpha: rgba(36, 129, 215, 0.2); 
+				--tg-theme-button-color-alpha: rgba(36, 129, 215, 0.2);
 			}
 
 			body {
-				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-				background-color: var(--tg-theme-bg-color, var(--original-background-color));
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					sans-serif;
+				background-color: var(
+					--tg-theme-bg-color,
+					var(--original-background-color)
+				);
 				color: var(--tg-theme-text-color, var(--original-text-color));
 				margin: 0;
 				padding: 20px;
@@ -38,15 +46,18 @@
 			}
 
 			.ticket-container {
-				background: var(--tg-theme-secondary-bg-color, var(--original-white));
+				background: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-white)
+				);
 				border-radius: 12px;
-				box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 				padding: 20px;
 				width: 100%;
 				max-width: 400px;
 				box-sizing: border-box;
 			}
-			
+
 			.top-bar {
 				display: flex;
 				justify-content: flex-start;
@@ -75,8 +86,12 @@
 				font-size: 12px;
 				padding: 4px 8px;
 				border-radius: 12px;
-				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
-				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				background-color: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-secondary-color)
+				);
+				border: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 				transition: all 0.3s ease;
 			}
 
@@ -103,9 +118,13 @@
 			}
 
 			.history-toggle-btn {
-				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				background-color: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-secondary-color)
+				);
 				color: var(--tg-theme-text-color, var(--original-text-color));
-				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 				border-radius: 8px;
 				padding: 6px 12px;
 				font-size: 14px;
@@ -142,21 +161,31 @@
 			textarea {
 				width: 100%;
 				padding: 12px;
-				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
-				background-color: var(--tg-theme-secondary-bg-color, var(--original-white));
+				border: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
+				background-color: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-white)
+				);
 				color: var(--tg-theme-text-color, var(--original-text-color));
 				border-radius: 8px;
 				font-size: 16px;
 				box-sizing: border-box;
 				font-family: inherit;
-				transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+				transition:
+					border-color 0.2s ease-in-out,
+					box-shadow 0.2s ease-in-out;
 			}
 
 			input[type="tel"]:focus,
 			input[type="text"]:focus,
 			textarea:focus {
-				border-color: var(--tg-theme-button-color, var(--original-primary-color));
-				box-shadow: 0 0 0 2px var(--tg-theme-button-color-alpha, rgba(36, 129, 215, 0.2)); 
+				border-color: var(
+					--tg-theme-button-color,
+					var(--original-primary-color)
+				);
+				box-shadow: 0 0 0 2px
+					var(--tg-theme-button-color-alpha, rgba(36, 129, 215, 0.2));
 			}
 
 			input[type="tel"]::placeholder,
@@ -172,32 +201,48 @@
 			}
 
 			.accessory-buttons {
-				margin-top: 10px; 
+				margin-top: 10px;
 				display: flex;
 				gap: 8px;
 				flex-wrap: wrap;
 			}
 
-			.accessory-buttons button.accessory-btn { 
+			.accessory-buttons button.accessory-btn {
 				padding: 6px 10px;
 				font-size: 13px;
-				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
-				color: var(--tg-theme-link-color, var(--original-primary-color));
-				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				background-color: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-secondary-color)
+				);
+				color: var(
+					--tg-theme-link-color,
+					var(--original-primary-color)
+				);
+				border: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 				border-radius: 6px;
 				cursor: pointer;
-				transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+				transition:
+					background-color 0.2s,
+					color 0.2s,
+					border-color 0.2s;
 				flex: none;
 			}
 
 			.accessory-buttons button.accessory-btn:hover {
-				border-color: var(--tg-theme-link-color, var(--original-primary-color));
-				background-color: var(--tg-theme-bg-color, var(--original-background-color));
+				border-color: var(
+					--tg-theme-link-color,
+					var(--original-primary-color)
+				);
+				background-color: var(
+					--tg-theme-bg-color,
+					var(--original-background-color)
+				);
 			}
 
 			.accessory-buttons button.accessory-btn:active {
 				opacity: 0.7;
-				background-color: var(--tg-theme-hint-color, #ccc); 
+				background-color: var(--tg-theme-hint-color, #ccc);
 			}
 
 			.form-actions {
@@ -206,8 +251,8 @@
 				margin-top: 25px;
 			}
 
-			button { 
-				flex: 1; 
+			button {
+				flex: 1;
 				padding: 12px;
 				border: none;
 				border-radius: 8px;
@@ -217,29 +262,38 @@
 				transition: opacity 0.2s;
 			}
 
-			.form-actions button:active { 
+			.form-actions button:active {
 				opacity: 0.7;
 			}
 
 			.cancel-btn {
-				background-color: var(--tg-theme-secondary-bg-color, var(--original-secondary-color));
+				background-color: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-secondary-color)
+				);
 				color: var(--tg-theme-text-color, var(--original-text-color));
 				border: 1px solid var(--tg-theme-hint-color, transparent);
 			}
 			.cancel-btn:hover {
-					opacity: 0.8;
+				opacity: 0.8;
 			}
 
 			.send-btn {
-				background-color: var(--tg-theme-button-color, var(--original-primary-color));
+				background-color: var(
+					--tg-theme-button-color,
+					var(--original-primary-color)
+				);
 				color: var(--tg-theme-button-text-color, var(--original-white));
 			}
 			.send-btn:hover {
-					opacity: 0.85;
+				opacity: 0.85;
 			}
 
 			.error-message {
-				color: var(--tg-theme-destructive-text-color, var(--original-destructive-color));
+				color: var(
+					--tg-theme-destructive-text-color,
+					var(--original-destructive-color)
+				);
 				font-size: 14px;
 				margin-top: 15px;
 				text-align: center;
@@ -267,14 +321,17 @@
 			}
 
 			.modal-content {
-				background: var(--tg-theme-secondary-bg-color, var(--original-white));
+				background: var(
+					--tg-theme-secondary-bg-color,
+					var(--original-white)
+				);
 				border-radius: 12px;
 				width: 100%;
 				max-width: 400px;
 				max-height: 85vh;
 				display: flex;
 				flex-direction: column;
-				box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 				overflow: hidden;
 			}
 
@@ -283,7 +340,8 @@
 				justify-content: space-between;
 				align-items: center;
 				padding: 15px 20px;
-				border-bottom: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border-bottom: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 			}
 
 			.modal-header h3 {
@@ -313,8 +371,12 @@
 			}
 
 			.history-item {
-				background-color: var(--tg-theme-bg-color, var(--original-background-color));
-				border: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				background-color: var(
+					--tg-theme-bg-color,
+					var(--original-background-color)
+				);
+				border: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 				border-radius: 8px;
 				padding: 12px;
 				cursor: pointer;
@@ -322,7 +384,10 @@
 			}
 
 			.history-item:hover {
-				border-color: var(--tg-theme-button-color, var(--original-primary-color));
+				border-color: var(
+					--tg-theme-button-color,
+					var(--original-primary-color)
+				);
 			}
 
 			.history-date {
@@ -347,13 +412,21 @@
 
 			.modal-footer {
 				padding: 15px 20px;
-				border-top: 1px solid var(--tg-theme-hint-color, var(--original-border-color));
+				border-top: 1px solid
+					var(--tg-theme-hint-color, var(--original-border-color));
 			}
 
 			.clear-history-btn {
 				background-color: transparent;
-				color: var(--tg-theme-destructive-text-color, var(--original-destructive-color));
-				border: 1px solid var(--tg-theme-destructive-text-color, var(--original-destructive-color));
+				color: var(
+					--tg-theme-destructive-text-color,
+					var(--original-destructive-color)
+				);
+				border: 1px solid
+					var(
+						--tg-theme-destructive-text-color,
+						var(--original-destructive-color)
+					);
 				width: 100%;
 				flex: none;
 			}
@@ -361,13 +434,16 @@
 			.clear-history-btn:hover {
 				background-color: rgba(255, 0, 0, 0.05);
 			}
-
 		</style>
 	</head>
 	<body>
 		<div class="ticket-container">
 			<div class="top-bar">
-				<div id="botStatus" class="bot-status" aria-label="Статус бота: неизвестно">
+				<div
+					id="botStatus"
+					class="bot-status"
+					aria-label="Статус бота: неизвестно"
+				>
 					<span class="status-indicator"></span>
 					<span class="status-text">Проверка...</span>
 				</div>
@@ -375,38 +451,104 @@
 
 			<div class="header-wrap">
 				<div class="header">➕ Новая Заявка</div>
-				<button type="button" class="history-toggle-btn" id="openHistoryBtn">🕒 История</button>
+				<button
+					type="button"
+					class="history-toggle-btn"
+					id="openHistoryBtn"
+				>
+					🕒 История
+				</button>
 			</div>
 
 			<div class="input-group">
 				<label for="phone">📞 Телефон Клиента</label>
-				<input type="tel" id="phone" inputmode="tel" placeholder="Введите номер телефона" enterkeyhint="next" aria-label="Телефон клиента">
+				<input
+					type="tel"
+					id="phone"
+					inputmode="tel"
+					placeholder="Введите номер телефона"
+					enterkeyhint="next"
+					aria-label="Телефон клиента"
+				/>
 			</div>
 
 			<div class="input-group">
 				<label for="deviceModel">⚙️ Модель Техники</label>
-				<input type="text" id="deviceModel" placeholder="Например: Lenovo IdeaPad 5" inputmode="text" enterkeyhint="next" autocapitalize="sentences" aria-label="Модель техники">
+				<input
+					type="text"
+					id="deviceModel"
+					placeholder="Например: Lenovo IdeaPad 5"
+					inputmode="text"
+					enterkeyhint="next"
+					autocapitalize="sentences"
+					aria-label="Модель техники"
+				/>
 			</div>
 
 			<div class="input-group">
 				<label for="issueDescription">🛠️ Характер Неисправности</label>
-				<textarea id="issueDescription" placeholder="Например: Не заряжается, разбит экран" inputmode="text" enterkeyhint="next" autocapitalize="sentences" spellcheck="true" data-gramm="false" aria-label="Характер неисправности"></textarea>
+				<textarea
+					id="issueDescription"
+					placeholder="Например: Не заряжается, разбит экран"
+					inputmode="text"
+					enterkeyhint="next"
+					autocapitalize="sentences"
+					spellcheck="true"
+					data-gramm="false"
+					aria-label="Характер неисправности"
+				></textarea>
 			</div>
 
 			<div class="input-group">
 				<label for="accessories">🔌 Комплектация</label>
-				<input type="text" id="accessories" placeholder="Без комплектации" inputmode="text" enterkeyhint="done" autocapitalize="sentences" aria-label="Комплектация">
-				<div class="accessory-buttons"> 
-					<button type="button" class="accessory-btn" data-accessory="БП">+БП</button>
-					<button type="button" class="accessory-btn" data-accessory="Сумка">+Сумка</button>
-					<button type="button" class="accessory-btn" data-accessory="Кабель">+Кабель</button>
-					<button type="button" class="accessory-btn" data-accessory="Мышь">+Мышь</button>
+				<input
+					type="text"
+					id="accessories"
+					placeholder="Без комплектации"
+					inputmode="text"
+					enterkeyhint="done"
+					autocapitalize="sentences"
+					aria-label="Комплектация"
+				/>
+				<div class="accessory-buttons">
+					<button
+						type="button"
+						class="accessory-btn"
+						data-accessory="БП"
+					>
+						+БП
+					</button>
+					<button
+						type="button"
+						class="accessory-btn"
+						data-accessory="Сумка"
+					>
+						+Сумка
+					</button>
+					<button
+						type="button"
+						class="accessory-btn"
+						data-accessory="Кабель"
+					>
+						+Кабель
+					</button>
+					<button
+						type="button"
+						class="accessory-btn"
+						data-accessory="Мышь"
+					>
+						+Мышь
+					</button>
 				</div>
 			</div>
 
 			<div class="form-actions">
-				<button type="button" class="cancel-btn" aria-label="Отмена">Отмена</button>
-				<button type="button" class="send-btn" aria-label="Отправить">Отправить</button>
+				<button type="button" class="cancel-btn" aria-label="Отмена">
+					Отмена
+				</button>
+				<button type="button" class="send-btn" aria-label="Отправить">
+					Отправить
+				</button>
 			</div>
 
 			<div id="error-message" class="error-message"></div>
@@ -416,13 +558,25 @@
 			<div class="modal-content">
 				<div class="modal-header">
 					<h3>🕒 История заявок</h3>
-					<button type="button" class="close-modal-btn" id="closeHistoryBtn">✕</button>
+					<button
+						type="button"
+						class="close-modal-btn"
+						id="closeHistoryBtn"
+					>
+						✕
+					</button>
 				</div>
 				<div class="modal-body" id="historyList">
 					<div class="empty-history">История пуста</div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="clear-history-btn" id="clearHistoryBtn">Очистить историю</button>
+					<button
+						type="button"
+						class="clear-history-btn"
+						id="clearHistoryBtn"
+					>
+						Очистить историю
+					</button>
 				</div>
 			</div>
 		</div>
@@ -430,23 +584,30 @@
 		<script src="https://telegram.org/js/telegram-web-app.js"></script>
 		<script>
 			// Initialize Telegram Web App interactions
-			if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+			if (typeof Telegram !== "undefined" && Telegram.WebApp) {
 				Telegram.WebApp.ready();
-				Telegram.WebApp.onEvent('themeChanged', function() {
-					console.log('Theme changed:', Telegram.WebApp.themeParams);
+				Telegram.WebApp.onEvent("themeChanged", function () {
+					console.log("Theme changed:", Telegram.WebApp.themeParams);
 				});
 			}
 
 			function validatePhone(phone) {
 				const trimmedPhone = phone.trim();
-				if (trimmedPhone === '') {
-						return { isValid: false, message: 'Пожалуйста, введите номер телефона.' };
+				if (trimmedPhone === "") {
+					return {
+						isValid: false,
+						message: "Пожалуйста, введите номер телефона.",
+					};
 				}
 				const specificFormatRegex = /^(8\d{10}|\+7\d{10})$/;
 				if (specificFormatRegex.test(trimmedPhone)) {
-						return { isValid: true, message: '' };
+					return { isValid: true, message: "" };
 				} else {
-						return { isValid: false, message: 'Неверный формат. Номер должен быть вида 8XXXXXXXXXX или +7XXXXXXXXXX (без пробелов и дефисов).' };
+					return {
+						isValid: false,
+						message:
+							"Неверный формат. Номер должен быть вида 8XXXXXXXXXX или +7XXXXXXXXXX (без пробелов и дефисов).",
+					};
 				}
 			}
 
@@ -455,38 +616,44 @@
 				const accessoryText = event.target.dataset.accessory; // Get text from data-attribute
 				if (!accessoryText) return; // Safety check
 
-				const accessoriesInput = document.getElementById('accessories');
+				const accessoriesInput = document.getElementById("accessories");
 				const currentValue = accessoriesInput.value.trim();
-				
-				if (currentValue === '') {
+
+				if (currentValue === "") {
 					accessoriesInput.value = accessoryText;
 				} else {
 					// Check if the accessory (case-insensitive) is already included
-					const accessoriesArray = currentValue.split(',').map(item => item.trim().toLowerCase());
-					if (!accessoriesArray.includes(accessoryText.toLowerCase())) {
-						 accessoriesInput.value += ', ' + accessoryText;
+					const accessoriesArray = currentValue
+						.split(",")
+						.map((item) => item.trim().toLowerCase());
+					if (
+						!accessoriesArray.includes(accessoryText.toLowerCase())
+					) {
+						accessoriesInput.value += ", " + accessoryText;
 					}
 				}
 				accessoriesInput.focus();
 			}
 
-			function validateDescription(description) { // This function was present but not used in sendData validation directly
-				return description.trim() !== '';
+			function validateDescription(description) {
+				// This function was present but not used in sendData validation directly
+				return description.trim() !== "";
 			}
 
 			function sendData() {
-				const phoneInput = document.getElementById('phone');
-				const deviceModelInput = document.getElementById('deviceModel');
-				const issueDescriptionInput = document.getElementById('issueDescription');
-				const accessoriesInput = document.getElementById('accessories');
-				const errorMessage = document.getElementById('error-message');
+				const phoneInput = document.getElementById("phone");
+				const deviceModelInput = document.getElementById("deviceModel");
+				const issueDescriptionInput =
+					document.getElementById("issueDescription");
+				const accessoriesInput = document.getElementById("accessories");
+				const errorMessage = document.getElementById("error-message");
 
 				const phone = phoneInput.value;
 				const deviceModel = deviceModelInput.value.trim();
 				const issueDescription = issueDescriptionInput.value.trim();
 				const accessories = accessoriesInput.value.trim();
 
-				errorMessage.textContent = '';
+				errorMessage.textContent = "";
 
 				const phoneValidationResult = validatePhone(phone);
 				if (!phoneValidationResult.isValid) {
@@ -495,20 +662,23 @@
 					return;
 				}
 
-				if (deviceModel === '') {
-					errorMessage.textContent = 'Пожалуйста, введите модель техники.';
+				if (deviceModel === "") {
+					errorMessage.textContent =
+						"Пожалуйста, введите модель техники.";
 					deviceModelInput.focus();
 					return;
 				}
 
 				if (!validateDescription(issueDescription)) {
-					errorMessage.textContent = 'Пожалуйста, опишите характер неисправности.';
+					errorMessage.textContent =
+						"Пожалуйста, опишите характер неисправности.";
 					issueDescriptionInput.focus();
 					return;
 				}
 
-				if (typeof Telegram === 'undefined' || !Telegram.WebApp) {
-					errorMessage.textContent = 'Веб-приложение Telegram недоступно.';
+				if (typeof Telegram === "undefined" || !Telegram.WebApp) {
+					errorMessage.textContent =
+						"Веб-приложение Telegram недоступно.";
 					return;
 				}
 
@@ -523,25 +693,31 @@
 				const data = {
 					phone: phone,
 					description: combinedDescription,
-					app_origin: 'ticket_app'
+					app_origin: "ticket_app",
 				};
 
 				// --- ЛОГИКА: Сохранение в историю с проверкой на дубликаты ---
 				try {
 					let history = [];
-					const savedHistory = localStorage.getItem('ticketHistory');
+					const savedHistory = localStorage.getItem("ticketHistory");
 					if (savedHistory) {
 						history = JSON.parse(savedHistory);
 					}
 
 					const newTicket = {
 						id: Date.now(),
-						date: new Date().toLocaleString('ru-RU', {day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute:'2-digit'}),
+						date: new Date().toLocaleString("ru-RU", {
+							day: "2-digit",
+							month: "2-digit",
+							year: "2-digit",
+							hour: "2-digit",
+							minute: "2-digit",
+						}),
 						phone: phone,
 						deviceModel: deviceModel,
 						issueDescription: issueDescription,
 						accessories: accessories,
-						combinedDescription: combinedDescription
+						combinedDescription: combinedDescription,
 					};
 
 					// Проверяем, есть ли уже записи, и совпадает ли новая с самой последней
@@ -549,10 +725,13 @@
 					if (history.length > 0) {
 						const lastTicket = history[0];
 						// Сравниваем основные поля
-						if (lastTicket.phone === newTicket.phone &&
+						if (
+							lastTicket.phone === newTicket.phone &&
 							lastTicket.deviceModel === newTicket.deviceModel &&
-							lastTicket.issueDescription === newTicket.issueDescription &&
-							lastTicket.accessories === newTicket.accessories) {
+							lastTicket.issueDescription ===
+								newTicket.issueDescription &&
+							lastTicket.accessories === newTicket.accessories
+						) {
 							isDuplicate = true; // Нашли 100% совпадение с последней заявкой
 						}
 					}
@@ -565,7 +744,10 @@
 							history.pop();
 						}
 
-						localStorage.setItem('ticketHistory', JSON.stringify(history));
+						localStorage.setItem(
+							"ticketHistory",
+							JSON.stringify(history),
+						);
 					}
 				} catch (e) {
 					console.error("Ошибка при сохранении истории:", e);
@@ -577,7 +759,7 @@
 			}
 
 			function goBack() {
-				if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+				if (typeof Telegram !== "undefined" && Telegram.WebApp) {
 					Telegram.WebApp.close();
 				} else {
 					try {
@@ -585,74 +767,81 @@
 					} catch (e) {
 						console.error("Cannot go back:", e);
 						// Fallback: maybe show a message or disable the button
-						const errorMessage = document.getElementById('error-message');
-						if(errorMessage) errorMessage.textContent = "Не удается вернуться назад.";
+						const errorMessage =
+							document.getElementById("error-message");
+						if (errorMessage)
+							errorMessage.textContent =
+								"Не удается вернуться назад.";
 					}
 				}
 			}
 
 			function renderHistory() {
-				const historyList = document.getElementById('historyList');
-				historyList.innerHTML = ''; // Очищаем текущий список перед отрисовкой
+				const historyList = document.getElementById("historyList");
+				historyList.innerHTML = ""; // Очищаем текущий список перед отрисовкой
 
 				try {
-					const savedHistory = localStorage.getItem('ticketHistory');
+					const savedHistory = localStorage.getItem("ticketHistory");
 					if (!savedHistory) {
-						historyList.innerHTML = '<div class="empty-history">История пуста</div>';
+						historyList.innerHTML =
+							'<div class="empty-history">История пуста</div>';
 						return;
 					}
 
 					const history = JSON.parse(savedHistory);
 
 					if (history.length === 0) {
-						historyList.innerHTML = '<div class="empty-history">История пуста</div>';
+						historyList.innerHTML =
+							'<div class="empty-history">История пуста</div>';
 						return;
 					}
 
 					// Проходимся по каждой сохраненной заявке и создаем для нее карточку
-					history.forEach(function(ticket, index) {
-						const itemDiv = document.createElement('div');
-						itemDiv.className = 'history-item';
-						itemDiv.dataset.index = index; 
+					history.forEach(function (ticket, index) {
+						const itemDiv = document.createElement("div");
+						itemDiv.className = "history-item";
+						itemDiv.dataset.index = index;
 
 						// Обработчик клика для загрузки данных в форму
-						itemDiv.addEventListener('click', function() {
+						itemDiv.addEventListener("click", function () {
 							loadTicketFromHistory(index);
 						});
 
-						const dateDiv = document.createElement('div');
-						dateDiv.className = 'history-date';
+						const dateDiv = document.createElement("div");
+						dateDiv.className = "history-date";
 						// ИЗМЕНЕНИЕ ЗДЕСЬ: Добавили номер телефона рядом с датой
 						dateDiv.textContent = `${ticket.date} • 📞 ${ticket.phone}`;
 
-						const textDiv = document.createElement('div');
-						textDiv.className = 'history-text';
+						const textDiv = document.createElement("div");
+						textDiv.className = "history-text";
 						textDiv.textContent = ticket.combinedDescription;
 
 						itemDiv.appendChild(dateDiv);
 						itemDiv.appendChild(textDiv);
-						
+
 						historyList.appendChild(itemDiv);
 					});
-
 				} catch (e) {
 					console.error("Ошибка при чтении истории:", e);
-					historyList.innerHTML = '<div class="empty-history">Ошибка загрузки истории</div>';
+					historyList.innerHTML =
+						'<div class="empty-history">Ошибка загрузки истории</div>';
 				}
 			}
 
 			function openHistoryModal() {
 				renderHistory(); // Сначала достаем и рисуем список
-				document.getElementById('historyModal').classList.add('active'); // Затем показываем само окно
+				document.getElementById("historyModal").classList.add("active"); // Затем показываем само окно
 			}
 
 			function closeHistoryModal() {
-				document.getElementById('historyModal').classList.remove('active'); // Прячем окно
+				document
+					.getElementById("historyModal")
+					.classList.remove("active"); // Прячем окно
 			}
 
 			function loadTicketFromHistory(index) {
 				try {
-					const savedHistory = localStorage.getItem('ticketHistory');
+					const savedHistory = localStorage.getItem("ticketHistory");
 					if (!savedHistory) return;
 
 					const history = JSON.parse(savedHistory);
@@ -660,10 +849,14 @@
 
 					if (ticket) {
 						// Подставляем сохраненные значения обратно в поля ввода
-						document.getElementById('phone').value = ticket.phone || '';
-						document.getElementById('deviceModel').value = ticket.deviceModel || '';
-						document.getElementById('issueDescription').value = ticket.issueDescription || '';
-						document.getElementById('accessories').value = ticket.accessories || '';
+						document.getElementById("phone").value =
+							ticket.phone || "";
+						document.getElementById("deviceModel").value =
+							ticket.deviceModel || "";
+						document.getElementById("issueDescription").value =
+							ticket.issueDescription || "";
+						document.getElementById("accessories").value =
+							ticket.accessories || "";
 
 						// Закрываем модальное окно после выбора заявки
 						closeHistoryModal();
@@ -675,8 +868,10 @@
 
 			function clearHistory() {
 				// Спрашиваем подтверждение перед удалением (чтобы случайно не стереть)
-				if (confirm('Вы уверены, что хотите очистить историю заявок?')) {
-					localStorage.removeItem('ticketHistory'); // Удаляем из памяти
+				if (
+					confirm("Вы уверены, что хотите очистить историю заявок?")
+				) {
+					localStorage.removeItem("ticketHistory"); // Удаляем из памяти
 					renderHistory(); // Сразу перерисовываем интерфейс (покажет "История пуста")
 				}
 			}
@@ -686,44 +881,51 @@
 			// but since this script is at the end of the body, elements should be available.
 			// --- Полностью обновленный блок слушателей событий ---
 			// --- Полностью обновленный блок слушателей событий ---
-			document.addEventListener('DOMContentLoaded', function() {
-				const cancelBtn = document.querySelector('.cancel-btn');
+			document.addEventListener("DOMContentLoaded", function () {
+				const cancelBtn = document.querySelector(".cancel-btn");
 				if (cancelBtn) {
-					cancelBtn.addEventListener('click', goBack);
+					cancelBtn.addEventListener("click", goBack);
 				}
 
-				const sendBtn = document.querySelector('.send-btn');
+				const sendBtn = document.querySelector(".send-btn");
 				if (sendBtn) {
-					sendBtn.addEventListener('click', sendData);
+					sendBtn.addEventListener("click", sendData);
 				}
 
-				const accessoryBtns = document.querySelectorAll('.accessory-btn');
-				accessoryBtns.forEach(button => {
-					button.addEventListener('click', addAccessory);
+				const accessoryBtns =
+					document.querySelectorAll(".accessory-btn");
+				accessoryBtns.forEach((button) => {
+					button.addEventListener("click", addAccessory);
 				});
 
-				const openHistoryBtn = document.getElementById('openHistoryBtn');
+				const openHistoryBtn =
+					document.getElementById("openHistoryBtn");
 				if (openHistoryBtn) {
-					openHistoryBtn.addEventListener('click', openHistoryModal);
+					openHistoryBtn.addEventListener("click", openHistoryModal);
 				}
 
-				const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+				const closeHistoryBtn =
+					document.getElementById("closeHistoryBtn");
 				if (closeHistoryBtn) {
-					closeHistoryBtn.addEventListener('click', closeHistoryModal);
+					closeHistoryBtn.addEventListener(
+						"click",
+						closeHistoryModal,
+					);
 				}
 
-				const historyModal = document.getElementById('historyModal');
+				const historyModal = document.getElementById("historyModal");
 				if (historyModal) {
-					historyModal.addEventListener('click', function(event) {
+					historyModal.addEventListener("click", function (event) {
 						if (event.target === historyModal) {
 							closeHistoryModal();
 						}
 					});
 				}
 
-				const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+				const clearHistoryBtn =
+					document.getElementById("clearHistoryBtn");
 				if (clearHistoryBtn) {
-					clearHistoryBtn.addEventListener('click', clearHistory);
+					clearHistoryBtn.addEventListener("click", clearHistory);
 				}
 
 				// Запуск проверки статуса бота при загрузке
@@ -735,36 +937,44 @@
 			// Функция для проверки статуса бота
 			async function checkBotStatus() {
 				// ВАЖНО: Замените этот URL на реальный адрес вашего воркера!
-				const WORKER_URL = 'https://vtihub.vitalya-dev.workers.dev'; 
-				const statusElement = document.getElementById('botStatus');
-				const statusText = statusElement.querySelector('.status-text');
+				const WORKER_URL = "https://vtihub.vitalya-dev.workers.dev";
+				const statusElement = document.getElementById("botStatus");
+				const statusText = statusElement.querySelector(".status-text");
 
 				try {
 					const response = await fetch(`${WORKER_URL}/status`);
 					if (!response.ok) {
-						throw new Error('Network response was not ok');
+						throw new Error("Network response was not ok");
 					}
 					const data = await response.json();
 
-					statusElement.classList.remove('online', 'offline');
-					
+					statusElement.classList.remove("online", "offline");
+
 					if (data.online) {
-						statusElement.classList.add('online');
-						statusText.textContent = 'В сети';
-						statusElement.setAttribute('aria-label', 'Статус бота: В сети');
+						statusElement.classList.add("online");
+						statusText.textContent = "В сети";
+						statusElement.setAttribute(
+							"aria-label",
+							"Статус бота: В сети",
+						);
 					} else {
-						statusElement.classList.add('offline');
-						statusText.textContent = 'Не в сети';
-						statusElement.setAttribute('aria-label', 'Статус бота: Не в сети');
+						statusElement.classList.add("offline");
+						statusText.textContent = "Не в сети";
+						statusElement.setAttribute(
+							"aria-label",
+							"Статус бота: Не в сети",
+						);
 					}
 				} catch (error) {
-					console.error('Ошибка при проверке статуса бота:', error);
-					statusElement.classList.remove('online', 'offline');
-					statusText.textContent = 'Ошибка';
-					statusElement.setAttribute('aria-label', 'Статус бота: Ошибка проверки');
+					console.error("Ошибка при проверке статуса бота:", error);
+					statusElement.classList.remove("online", "offline");
+					statusText.textContent = "Ошибка";
+					statusElement.setAttribute(
+						"aria-label",
+						"Статус бота: Ошибка проверки",
+					);
 				}
 			}
-
 		</script>
 	</body>
 </html>
