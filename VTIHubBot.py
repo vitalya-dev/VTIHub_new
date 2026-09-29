@@ -586,7 +586,7 @@ async def send_heartbeat():
             logger.error(f"Ошибка при отправке heartbeat: {e}")
         
         # Засыпаем на 600 секунд (10 минут) до следующей отправки
-        await asyncio.sleep(600)
+        await asyncio.sleep(60)
 
 
 async def monitor_database(db_path: str, bot: Bot, channel_id: str = ""):
